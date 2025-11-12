@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Molam Connect</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .brand-gradient {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full">
+    <!-- Loading State -->
+    <div id="loading" class="bg-white rounded-2xl shadow-xl p-8 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Loading checkout...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="bg-white rounded-2xl shadow-xl p-8 text-center hidden">
+      <div class="text-red-500 text-5xl mb-4">⚠️</div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Session Error</h2>
+      <p class="text-gray-600" id="error-message"></p>
+      <button onclick="window.location.reload()" class="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+        Try Again
+      </button>
+    </div>
+
+    <!-- Checkout Form -->
+    <div id="checkout-form" class="bg-white rounded-2xl shadow-xl overflow-hidden hidden">
+      <!-- Branding Header -->
+      <div id="brand-header" class="brand-gradient p-6 text-white text-center">
+        <img id="merchant-logo" src="" alt="Logo" class="h-12 mx-auto mb-2 hidden">
+        <h1 id="merchant-name" class="text-2xl font-bold"></h1>
+      </div>
+
+      <!-- Plan Details -->
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h2 id="plan-name" class="text-xl font-semibold text-gray-900"></h2>
+            <p id="plan-description" class="text-sm text-gray-600 mt-1"></p>
+          </div>
+          <div class="text-right">
+            <div id="plan-amount" class="text-2xl font-bold text-gray-900"></div>
+            <div id="plan-interval" class="text-sm text-gray-600"></div>
+          </div>
+        </div>
+
+        <div id="trial-notice" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 hidden">
+          <span class="font-medium">Free trial</span>: You won't be charged until the trial ends.
+        </div>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <div class="p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
+
+        <!-- Payment Method Tabs -->
+        <div id="payment-methods" class="flex gap-2 mb-6">
+          <button onclick="selectPaymentMethod('card')" data-method="card" class="payment-tab flex-1 px-4 py-3 rounded-lg border-2 border-indigo-600 bg-indigo-50 text-indigo-600 font-medium transition-all">
+            💳 Card
+          </button>
+          <button onclick="selectPaymentMethod('sepa')" data-method="sepa" class="payment-tab flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-600 font-medium hover:border-gray-300 transition-all">
+            🏦 SEPA
+          </button>
+          <button onclick="selectPaymentMethod('wallet')" data-method="wallet" class="payment-tab flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 bg-white text-gray-600 font-medium hover:border-gray-300 transition-all">
+            👛 Wallet
+          </button>
+        </div>
+
+        <!-- Card Form -->
+        <div id="card-form" class="payment-form">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+              <input type="text" id="card-number" placeholder="4242 4242 4242 4242" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
+                <input type="text" id="card-expiry" placeholder="MM/YY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">CVC</label>
+                <input type="text" id="card-cvc" placeholder="123" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEPA Form -->
+        <div id="sepa-form" class="payment-form hidden">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Account Holder Name</label>
+              <input type="text" id="sepa-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+              <input type="text" id="sepa-iban" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX X00" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
+              <p class="font-medium mb-1">SEPA Direct Debit Authorization</p>
+              <p>By providing your IBAN and confirming this payment, you authorize this merchant to send instructions to your bank to debit your account.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallet Form -->
+        <div id="wallet-form" class="payment-form hidden">
+          <div class="text-center py-4">
+            <div class="text-4xl mb-2">👛</div>
+            <p class="text-gray-600">You will be redirected to Molam Wallet to complete this payment.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="p-6 bg-gray-50">
+        <button id="submit-btn" onclick="handleSubmit()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-colors shadow-lg">
+          Subscribe Now
+        </button>
+        <div class="mt-4 flex items-center justify-center text-xs text-gray-500">
+          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+          </svg>
+          Secure checkout powered by Molam Connect
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sessionData = null;
+    let selectedMethod = 'card';
+
+    // Get session ID from URL
+    const sessionId = window.location.pathname.split('/checkout/')[1];
+
+    // Load session
+    async function loadSession() {
+      try {
+        const response = await fetch(`/api/checkout/session/${sessionId}`);
+        if (!response.ok) throw new Error('Session not found');
+
+        sessionData = await response.json();
+
+        if (sessionData.status === 'expired') {
+          showError('This checkout session has expired. Please create a new checkout link.');
+          return;
+        }
+
+        if (sessionData.status === 'completed') {
+          showError('This checkout session has already been completed.');
+          return;
+        }
+
+        renderCheckout();
+        logEvent('page_view');
+      } catch (err) {
+        showError(err.message || 'Failed to load checkout session');
+      }
+    }
+
+    function renderCheckout() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('checkout-form').classList.remove('hidden');
+
+      // Brand header
+      if (sessionData.logo_url) {
+        document.getElementById('merchant-logo').src = sessionData.logo_url;
+        document.getElementById('merchant-logo').classList.remove('hidden');
+      }
+      document.getElementById('merchant-name').textContent = sessionData.business_name || 'Molam Connect';
+
+      // Set brand color
+      if (sessionData.brand_color) {
+        document.getElementById('brand-header').style.background =
+          `linear-gradient(135deg, ${sessionData.brand_color} 0%, ${adjustBrightness(sessionData.brand_color, -20)} 100%)`;
+      }
+
+      // Plan details
+      document.getElementById('plan-amount').textContent =
+        `${sessionData.amount} ${sessionData.currency}`;
+      document.getElementById('plan-interval').textContent = '/ month'; // Could be dynamic
+    }
+
+    function selectPaymentMethod(method) {
+      selectedMethod = method;
+
+      // Update tabs
+      document.querySelectorAll('.payment-tab').forEach(tab => {
+        if (tab.dataset.method === method) {
+          tab.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+          tab.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
+        } else {
+          tab.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+          tab.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
+        }
+      });
+
+      // Show/hide forms
+      document.querySelectorAll('.payment-form').forEach(form => form.classList.add('hidden'));
+      document.getElementById(`${method}-form`).classList.remove('hidden');
+
+      logEvent('payment_method_selected', { method });
+    }
+
+    async function handleSubmit() {
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        logEvent('payment_started', { method: selectedMethod });
+
+        // Simulate payment processing (in production, integrate with Stripe/PSP)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Complete session (this would be called from backend after payment success)
+        if (sessionData.success_url) {
+          window.location.href = sessionData.success_url;
+        } else {
+          showSuccess();
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Subscribe Now';
+        showError(err.message || 'Payment failed');
+      }
+    }
+
+    function showSuccess() {
+      document.getElementById('checkout-form').innerHTML = `
+        <div class="p-12 text-center">
+          <div class="text-green-500 text-6xl mb-4">✓</div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Subscription Successful!</h2>
+          <p class="text-gray-600 mb-6">You're all set. Check your email for confirmation.</p>
+          ${sessionData.return_url ? `<a href="${sessionData.return_url}" class="px-6 py-3 bg-indigo-600 text-white rounded-lg inline-block hover:bg-indigo-700 transition-colors">Return to Site</a>` : ''}
+        </div>
+      `;
+    }
+
+    function showError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('checkout-form').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error-message').textContent = message;
+    }
+
+    async function logEvent(eventType, eventData = {}) {
+      try {
+        await fetch(`/api/checkout/session/${sessionId}/event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_type: eventType, event_data: eventData })
+        });
+      } catch (err) {
+        console.error('Failed to log event:', err);
+      }
+    }
+
+    function adjustBrightness(color, percent) {
+      const num = parseInt(color.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255))
+        .toString(16).slice(1);
+    }
+
+    // Load on page load
+    loadSession();
+  </script>
+</body>
+</html>

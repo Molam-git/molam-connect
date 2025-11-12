@@ -1,0 +1,29 @@
+{
+  "name": "@molam/brique-60-recurring-billing-subscriptions",
+  "version": "1.0.0",
+  "description": "Recurring Billing & Subscriptions - Molam Connect",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "worker:invoices": "ts-node src/workers/invoiceGenerator.ts",
+    "worker:dunning": "ts-node src/workers/dunningProcessor.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "prom-client": "^15.1.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}

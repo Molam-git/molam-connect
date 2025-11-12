@@ -1,0 +1,62 @@
+{
+  "name": "@molam/brique-42-connect-payments",
+  "version": "1.0.0",
+  "description": "Brique 42 - Molam Connect Payments: Payment intents, charges, refunds & real-time dashboard",
+  "main": "dist/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "psql $DATABASE_URL -f migrations/001_b42_connect_payments.sql && psql $DATABASE_URL -f migrations/002_b42_connect_webhooks.sql",
+    "worker:webhook-delivery": "ts-node workers/webhook-delivery.ts",
+    "worker:payout-eligibility": "ts-node workers/payouts-eligibility.ts",
+    "worker:sse-broker": "ts-node workers/sse-broker.ts",
+    "worker:dispatcher": "ts-node workers/dispatcher.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Molam-git/molam-connect.git"
+  },
+  "keywords": [
+    "molam",
+    "connect",
+    "payments",
+    "intents",
+    "charges",
+    "refunds",
+    "stripe-alternative"
+  ],
+  "author": "Molam Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Molam-git/molam-connect/issues"
+  },
+  "homepage": "https://github.com/Molam-git/molam-connect#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.16.3",
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.2",
+    "prom-client": "^15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

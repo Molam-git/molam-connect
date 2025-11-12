@@ -1,0 +1,50 @@
+{
+  "name": "@molam/brique-41-connect",
+  "version": "1.0.0",
+  "description": "Brique 41 - Molam Connect: Merchant accounts & payment gateway orchestration",
+  "main": "dist/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "psql $DATABASE_URL -f migrations/000_b41_connect_core.sql",
+    "worker:verification": "ts-node workers/verification-sync.ts",
+    "worker:events": "ts-node workers/events-dispatcher.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Molam-git/molam-connect.git"
+  },
+  "keywords": [
+    "molam",
+    "connect",
+    "payment-gateway",
+    "merchant-accounts",
+    "stripe-alternative"
+  ],
+  "author": "Molam Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Molam-git/molam-connect/issues"
+  },
+  "homepage": "https://github.com/Molam-git/molam-connect#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/pg": "^8.11.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

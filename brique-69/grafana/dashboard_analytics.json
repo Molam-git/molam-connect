@@ -1,0 +1,101 @@
+{
+  "dashboard": {
+    "title": "Molam Analytics Dashboard (Brique 69)",
+    "tags": ["molam", "analytics", "brique-69"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(analytics_api_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+      },
+      {
+        "id": 2,
+        "title": "Consumer Ingestion Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(analytics_ingest_events_total[5m])",
+            "legendFormat": "{{event_type}}"
+          }
+        ],
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+      },
+      {
+        "id": 3,
+        "title": "API Latency (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(analytics_api_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(analytics_ingest_errors_total[5m])",
+            "legendFormat": "{{error_type}}"
+          }
+        ],
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+      },
+      {
+        "id": 5,
+        "title": "Cache Hit Ratio",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "analytics_cache_hits_total / (analytics_cache_hits_total + analytics_cache_misses_total) * 100"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 }
+      },
+      {
+        "id": 6,
+        "title": "Anomalies Detected",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(analytics_anomalies_detected_total)"
+          }
+        ],
+        "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 }
+      },
+      {
+        "id": 7,
+        "title": "Active Alerts",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(analytics_alerts_created_total{status='open'})"
+          }
+        ],
+        "gridPos": { "x": 12, "y": 16, "w": 6, "h": 4 }
+      },
+      {
+        "id": 8,
+        "title": "Consumer Lag",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kafka_consumergroup_lag{group='analytics-consumer-g'}"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 }
+      }
+    ]
+  }
+}

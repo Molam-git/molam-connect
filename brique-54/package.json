@@ -1,0 +1,32 @@
+{
+  "name": "@molam/brique-54-refunds",
+  "version": "1.0.0",
+  "description": "Molam Refunds & Cancellations Engine",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "migrate": "psql $DATABASE_URL -f migrations/054_refunds.sql",
+    "worker": "tsx src/workers/refundWorker.ts"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "dotenv": "^17.2.3",
+    "helmet": "^8.1.0",
+    "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "prom-client": "^15.1.3",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.0",
+    "@types/pg": "^8.11.10",
+    "@types/jsonwebtoken": "^9.0.7",
+    "typescript": "^5.9.3",
+    "tsx": "^4.19.2"
+  }
+}

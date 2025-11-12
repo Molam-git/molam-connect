@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-tests/
+*.log
+.env
+coverage/
+.DS_Store
+crawl-cache/

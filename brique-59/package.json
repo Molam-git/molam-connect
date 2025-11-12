@@ -1,0 +1,41 @@
+{
+  "name": "@molam/brique-59-sira-analytics",
+  "version": "1.0.0",
+  "description": "Molam Connect - SIRA Dispute Analytics & Auto-Resolution",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "worker:analytics": "ts-node src/workers/analyticsWorker.ts",
+    "worker:retrainer": "ts-node src/workers/modelRetrainer.ts",
+    "test": "jest"
+  },
+  "keywords": ["molam", "sira", "ml", "disputes", "analytics"],
+  "author": "Molam Finance",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^2.7.0",
+    "prom-client": "^15.1.0",
+    "@tensorflow/tfjs-node": "^4.15.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/pg": "^8.10.9",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/node-fetch": "^2.6.9",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.9.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11"
+  }
+}

@@ -1,0 +1,438 @@
+/**
+ * Brique 42 - Connect Payments
+ * Webhooks Manager Styles
+ *
+ * Apple-inspired design with clean, minimal aesthetics
+ */
+
+/* ============================================================================
+   Container
+   ========================================================================== */
+
+.webhooks-manager {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ============================================================================
+   Header
+   ========================================================================== */
+
+.webhooks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.webhooks-header h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0;
+}
+
+/* ============================================================================
+   Buttons
+   ========================================================================== */
+
+.btn-primary {
+  background: #0071e3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #0077ed;
+}
+
+.btn-secondary {
+  background: #f5f5f7;
+  color: #1d1d1f;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #e8e8ed;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: #f5f5f7;
+}
+
+.btn-delete:hover {
+  background: #ffe5e5;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  color: #86868b;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.btn-close:hover {
+  background: #f5f5f7;
+}
+
+/* ============================================================================
+   Empty State
+   ========================================================================== */
+
+.webhooks-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f5f5f7;
+  border-radius: 16px;
+}
+
+.webhooks-empty p {
+  margin: 8px 0;
+  color: #1d1d1f;
+  font-size: 16px;
+}
+
+.webhooks-empty-hint {
+  color: #86868b;
+  font-size: 14px;
+}
+
+/* ============================================================================
+   Loading & Error States
+   ========================================================================== */
+
+.webhooks-loading,
+.webhooks-error {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #86868b;
+}
+
+.webhooks-error {
+  color: #ff3b30;
+}
+
+/* ============================================================================
+   Webhook Cards
+   ========================================================================== */
+
+.webhooks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.webhook-card {
+  background: white;
+  border: 1px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 20px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.webhook-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #86868b;
+}
+
+.webhook-card.disabled {
+  opacity: 0.6;
+  background: #fafafa;
+}
+
+.webhook-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.webhook-card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.webhook-url {
+  background: #f5f5f7;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: "SF Mono", Monaco, "Courier New", monospace;
+  color: #1d1d1f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 500px;
+}
+
+.webhook-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ============================================================================
+   Status Badge
+   ========================================================================== */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.enabled {
+  background: #d1f4e0;
+  color: #007a3d;
+}
+
+.status-badge.disabled {
+  background: #f5f5f7;
+  color: #86868b;
+}
+
+/* ============================================================================
+   Webhook Details
+   ========================================================================== */
+
+.webhook-description {
+  color: #86868b;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.webhook-events {
+  font-size: 13px;
+  color: #6e6e73;
+  margin: 12px 0 8px;
+}
+
+.webhook-events strong {
+  color: #1d1d1f;
+}
+
+.webhook-last-triggered {
+  font-size: 12px;
+  color: #86868b;
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   Modal
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #d2d2d7;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #d2d2d7;
+}
+
+/* ============================================================================
+   Form
+   ========================================================================== */
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1d1d1f;
+  margin-bottom: 8px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  border-color: #0071e3;
+}
+
+.form-control:disabled {
+  background: #f5f5f7;
+  color: #86868b;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   Checkbox
+   ========================================================================== */
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1d1d1f;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0071e3;
+}
+
+.events-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #f5f5f7;
+  border-radius: 8px;
+}
+
+/* ============================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .webhooks-manager {
+    padding: 16px;
+  }
+
+  .webhooks-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .webhooks-header h2 {
+    font-size: 24px;
+  }
+
+  .webhook-card-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .webhook-url {
+    max-width: 100%;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
+}
