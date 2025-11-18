@@ -493,6 +493,30 @@ const createCheckoutRouter = require('./brique-109/src/routes/checkout');
 // Initialize pool for tokenization service
 tokenService.setPool(pool);
 
+// ============================================================================
+// Brique 110: Plugin Telemetry & Upgrade Notifications (Ops Toggles)
+// ============================================================================
+
+const monitoringService = require('./brique-110/src/services/monitoring');
+const notificationService = require('./brique-110/src/services/notifications');
+const createPluginRouter = require('./brique-110/src/routes/plugins');
+
+// Initialize pool for plugin monitoring services
+monitoringService.setPool(pool);
+notificationService.setPool(pool);
+
+// ============================================================================
+// Brique 110bis: Auto-Healing Plugins & Interop Layer
+// ============================================================================
+
+const autoHealingService = require('./brique-110bis/src/services/autoHealing');
+const interopService = require('./brique-110bis/src/services/interop');
+const createAutoHealingRouter = require('./brique-110bis/src/routes/autohealing');
+
+// Initialize pool for auto-healing services
+autoHealingService.setPool(pool);
+interopService.setPool(pool);
+
 const qrService = new QRService(pool, {
   hmacSecret: process.env.QR_HMAC_SECRET || 'default-secret-change-me',
   baseUrl: process.env.PAY_URL || 'http://localhost:3000',
@@ -703,6 +727,28 @@ app.use('/api/v1/payment-intents', paymentIntentRouter);
 // Mount Checkout routes
 const checkoutRouter = createCheckoutRouter(pool, tokenService);
 app.use('/api/v1/checkout', checkoutRouter);
+
+// ============================================================================
+// Brique 110: Plugin Telemetry API
+// ============================================================================
+
+// Mount Plugin routes
+const pluginRouter = createPluginRouter(pool, monitoringService, notificationService);
+app.use('/api/v1/plugins', pluginRouter);
+
+// Serve Ops Dashboard
+app.use('/ops/plugins', express.static(path.join(__dirname, 'brique-110/src/components')));
+
+// ============================================================================
+// Brique 110bis: Auto-Healing & Interop API
+// ============================================================================
+
+// Mount Auto-Healing routes
+const autoHealingRouter = createAutoHealingRouter(pool, autoHealingService, interopService);
+app.use('/api/v1/plugins', autoHealingRouter);
+
+// Serve Auto-Healing Console
+app.use('/ops/autohealing', express.static(path.join(__dirname, 'brique-110bis/src/components')));
 
 // Tokenization endpoint (served from tokens.molam.com in production)
 app.post('/api/v1/tokens', async (req, res) => {
@@ -921,6 +967,27 @@ const server = app.listen(PORT, HOST, () => {
   console.log('  POST /api/v1/checkout/session/:id/cancel');
   console.log('  POST /api/v1/tokens (PCI-compliant tokenization)');
   console.log('\n  Widget Demo: http://localhost:3000/brique-109/web/CheckoutWidget.html');
+  console.log('\n  Brique 110: Plugin Telemetry & Upgrade Notifications');
+  console.log('  POST /api/v1/plugins/heartbeat');
+  console.log('  POST /api/v1/plugins/event');
+  console.log('  GET  /api/v1/plugins/list');
+  console.log('  GET  /api/v1/plugins/:id');
+  console.log('  POST /api/v1/plugins/:id/toggle');
+  console.log('  POST /api/v1/plugins/:id/notify-upgrade');
+  console.log('  GET  /api/v1/plugins/stats/overview');
+  console.log('\n  Ops Dashboard: http://localhost:3000/ops/plugins');
+  console.log('\n  Brique 110bis: Auto-Healing & Interop Layer');
+  console.log('  POST /api/v1/plugins/autoheal');
+  console.log('  POST /api/v1/plugins/autoheal/:id/apply');
+  console.log('  POST /api/v1/plugins/autoheal/:id/rollback');
+  console.log('  GET  /api/v1/plugins/autoheal/logs');
+  console.log('  GET  /api/v1/plugins/autoheal/stats');
+  console.log('  GET  /api/v1/plugins/autoheal/commands/:plugin_id');
+  console.log('  POST /api/v1/plugins/interop/event');
+  console.log('  GET  /api/v1/plugins/interop/events');
+  console.log('  GET  /api/v1/plugins/interop/stats');
+  console.log('  POST /api/v1/plugins/interop/mappings');
+  console.log('\n  Auto-Healing Console: http://localhost:3000/ops/autohealing');
   console.log('='.repeat(60) + '\n');
 });
 

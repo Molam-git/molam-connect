@@ -180,6 +180,15 @@ $sqlFiles = @(
 
     # Brique 109 - Checkout Widgets & SDK Enhancements
     "brique-109/migrations/001_checkout_widgets.sql"
+
+    # Brique 110 - Plugin Telemetry & Upgrade Notifications
+    "brique-110/migrations/001_plugin_telemetry.sql"
+
+    # Brique 110bis - Auto-Healing Plugins & Interop Layer
+    "brique-110bis/migrations/001_auto_healing_interop.sql"
+
+    # Brique 110ter - AI Plugin Forge
+    "brique-110ter/migrations/001_plugin_forge.sql"
 )
 
 Write-Host "✅ Trouvé $($sqlFiles.Count) fichiers SQL" -ForegroundColor Green
