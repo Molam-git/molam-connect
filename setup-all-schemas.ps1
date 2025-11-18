@@ -171,6 +171,15 @@ $sqlFiles = @(
     "brique-104/php-sdk/sql/migrations/2025_01_create_idempotency_and_webhooks.sql"
     "brique-105/migrations/001_idempotency_and_webhooks.sql"
     "brique-106/auth-service/migrations/001_auth_decisions_and_otp.sql"
+
+    # Brique 107 - Offline Fallback (QR + USSD)
+    "brique-107/migrations/001_offline_fallback.sql"
+
+    # Brique 108 - PaymentIntent & 3DS2 Orchestration
+    "brique-108/migrations/001_payment_intent_3ds2.sql"
+
+    # Brique 109 - Checkout Widgets & SDK Enhancements
+    "brique-109/migrations/001_checkout_widgets.sql"
 )
 
 Write-Host "✅ Trouvé $($sqlFiles.Count) fichiers SQL" -ForegroundColor Green

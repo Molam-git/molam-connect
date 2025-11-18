@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Connect - Offline Payment Tests (QR + USSD)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: #667eea;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 16px;
+      background: #f5f5f7;
+      border-radius: 8px;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .result-box pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .qr-display {
+      margin-top: 16px;
+      text-align: center;
+      padding: 20px;
+      background: #f5f5f7;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .qr-display img {
+      max-width: 300px;
+      width: 100%;
+      height: auto;
+      border: 4px solid white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .qr-display .qr-info {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .qr-display .qr-url {
+      margin-top: 8px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      word-break: break-all;
+    }
+
+    .ussd-simulator {
+      background: #000;
+      color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      min-height: 200px;
+      margin-top: 16px;
+    }
+
+    .ussd-output {
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .ussd-input-line {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .ussd-input-line span {
+      color: #0f0;
+    }
+
+    .ussd-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #0f0;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-success {
+      background: #34c759;
+      color: white;
+    }
+
+    .badge-warning {
+      background: #ff9500;
+      color: white;
+    }
+
+    .badge-error {
+      background: #ff3b30;
+      color: white;
+    }
+
+    .badge-info {
+      background: #007aff;
+      color: white;
+    }
+
+    .message {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.success {
+      background: rgba(52, 199, 89, 0.1);
+      color: #34c759;
+      border: 1px solid #34c759;
+    }
+
+    .message.error {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+      border: 1px solid #ff3b30;
+    }
+
+    .message.info {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+      border: 1px solid #007aff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+      <h1>🔌 Offline Payment Tests</h1>
+      <p>Test QR Codes and USSD menus for offline payment scenarios</p>
+    </div>
+
+    <div class="grid">
+      <!-- QR Code Section -->
+      <div class="card">
+        <h2>📱 QR Code Generation</h2>
+
+        <div class="form-group">
+          <label for="qr_type">Type</label>
+          <select id="qr_type">
+            <option value="payment_request">Payment Request</option>
+            <option value="cash_in">Cash In</option>
+            <option value="agent_receipt">Agent Receipt</option>
+            <option value="withdrawal">Withdrawal</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="qr_amount">Amount (XOF)</label>
+          <input type="number" id="qr_amount" value="5000" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="qr_currency">Currency</label>
+          <select id="qr_currency">
+            <option value="XOF" selected>XOF - West African CFA</option>
+            <option value="USD">USD - US Dollar</option>
+            <option value="EUR">EUR - Euro</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="qr_ttl">Expiration (seconds)</label>
+          <input type="number" id="qr_ttl" value="300" min="60" max="3600">
+          <small>How long the QR code is valid</small>
+        </div>
+
+        <button class="btn" onclick="generateQR()">Generate QR Code</button>
+
+        <div id="qr_display" class="qr-display">
+          <img id="qr_image" alt="QR Code">
+          <div class="qr-info">
+            <div><strong>ID:</strong> <span id="qr_id"></span></div>
+            <div><strong>Expires:</strong> <span id="qr_expires"></span></div>
+            <div><strong>Amount:</strong> <span id="qr_amount_display"></span></div>
+          </div>
+          <div class="qr-url" id="qr_url"></div>
+          <button class="btn btn-secondary" style="margin-top: 12px; width: auto; padding: 8px 16px;" onclick="verifyCurrentQR()">Verify QR</button>
+        </div>
+
+        <div id="qr_message" class="message"></div>
+        <div id="qr_result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- USSD Section -->
+      <div class="card">
+        <h2>☎️ USSD Menu Simulator</h2>
+
+        <div class="form-group">
+          <label for="ussd_phone">Phone Number</label>
+          <input type="text" id="ussd_phone" value="+221771234567" placeholder="+221771234567">
+          <small>Senegal format: +221XXXXXXXXX</small>
+        </div>
+
+        <div class="form-group">
+          <label for="ussd_country">Country</label>
+          <select id="ussd_country">
+            <option value="SN" selected>SN - Senegal</option>
+            <option value="CI">CI - Côte d'Ivoire</option>
+            <option value="ML">ML - Mali</option>
+            <option value="BF">BF - Burkina Faso</option>
+          </select>
+        </div>
+
+        <button class="btn" onclick="startUSSD()">Dial *131#</button>
+        <button class="btn btn-secondary" style="margin-top: 8px;" onclick="resetUSSD()">Reset Session</button>
+
+        <div id="ussd_simulator" class="ussd-simulator" style="display: none;">
+          <div id="ussd_output" class="ussd-output"></div>
+          <div class="ussd-input-line">
+            <span>></span>
+            <input type="text" id="ussd_input" class="ussd-input" placeholder="Enter your choice...">
+          </div>
+        </div>
+
+        <div id="ussd_message" class="message"></div>
+      </div>
+    </div>
+
+    <!-- QR Sessions List -->
+    <div class="card">
+      <h2>📊 Recent QR Sessions</h2>
+      <button class="btn" style="width: auto; padding: 8px 16px; margin-bottom: 12px;" onclick="loadQRSessions()">Refresh List</button>
+      <div id="qr_sessions_list" class="result-box"></div>
+    </div>
+
+    <!-- USSD Transactions List -->
+    <div class="card" style="margin-top: 24px;">
+      <h2>📊 USSD Transactions</h2>
+      <button class="btn" style="width: auto; padding: 8px 16px; margin-bottom: 12px;" onclick="loadUSSDTransactions()">Refresh List</button>
+      <div id="ussd_transactions_list" class="result-box"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentQR = null;
+    let ussdSessionId = null;
+    let ussdText = '';
+
+    // QR Code Functions
+    async function generateQR() {
+      const type = document.getElementById('qr_type').value;
+      const amount = parseFloat(document.getElementById('qr_amount').value);
+      const currency = document.getElementById('qr_currency').value;
+      const ttl = parseInt(document.getElementById('qr_ttl').value);
+
+      showMessage('qr', 'Generating QR code...', 'info');
+
+      try {
+        const response = await fetch('/api/v1/qr/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, amount, currency, ttl })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate QR code');
+        }
+
+        const data = await response.json();
+        currentQR = data;
+
+        // Display QR code
+        document.getElementById('qr_image').src = data.qr_data_url;
+        document.getElementById('qr_id').textContent = data.id;
+        document.getElementById('qr_expires').textContent = new Date(data.expires_at).toLocaleString();
+        document.getElementById('qr_amount_display').textContent = `${amount} ${currency}`;
+        document.getElementById('qr_url').textContent = data.url;
+        document.getElementById('qr_display').style.display = 'block';
+
+        showMessage('qr', '✅ QR code generated successfully!', 'success');
+        displayResult('qr_result', data);
+
+      } catch (error) {
+        showMessage('qr', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function verifyCurrentQR() {
+      if (!currentQR) {
+        showMessage('qr', 'No QR code to verify', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/v1/qr/verify/${currentQR.id}?hmac=${currentQR.hmac}`);
+
+        if (!response.ok) {
+          throw new Error('QR verification failed');
+        }
+
+        const data = await response.json();
+        showMessage('qr', `✅ QR code is valid! Status: ${data.status}`, 'success');
+        displayResult('qr_result', data);
+
+      } catch (error) {
+        showMessage('qr', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // USSD Functions
+    async function startUSSD() {
+      const phone = document.getElementById('ussd_phone').value;
+      const country = document.getElementById('ussd_country').value;
+
+      ussdSessionId = 'test_' + Date.now();
+      ussdText = '';
+
+      document.getElementById('ussd_simulator').style.display = 'block';
+      document.getElementById('ussd_output').textContent = 'Connecting to USSD gateway...\n';
+
+      try {
+        const response = await fetch('/api/v1/ussd/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: ussdSessionId,
+            msisdn: phone,
+            text: '',
+            countryCode: country
+          })
+        });
+
+        const data = await response.json();
+        displayUSSDOutput(data.text, data.end);
+
+        if (!data.end) {
+          setupUSSDInput();
+        }
+
+      } catch (error) {
+        showMessage('ussd', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    function displayUSSDOutput(text, ended) {
+      const output = document.getElementById('ussd_output');
+      output.textContent += `\n${text}\n`;
+
+      if (ended) {
+        output.textContent += '\n[Session ended. Press "Dial *131#" to start again]';
+        document.getElementById('ussd_input').disabled = true;
+      }
+    }
+
+    function setupUSSDInput() {
+      const input = document.getElementById('ussd_input');
+      input.disabled = false;
+      input.value = '';
+      input.focus();
+
+      input.onkeypress = async (e) => {
+        if (e.key === 'Enter') {
+          const userInput = input.value.trim();
+          if (!userInput) return;
+
+          ussdText = ussdText ? `${ussdText}*${userInput}` : userInput;
+          input.value = '';
+
+          const phone = document.getElementById('ussd_phone').value;
+          const country = document.getElementById('ussd_country').value;
+
+          try {
+            const response = await fetch('/api/v1/ussd/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: ussdSessionId,
+                msisdn: phone,
+                text: ussdText,
+                countryCode: country
+              })
+            });
+
+            const data = await response.json();
+            displayUSSDOutput(data.text, data.end);
+
+          } catch (error) {
+            displayUSSDOutput(`ERROR: ${error.message}`, true);
+          }
+        }
+      };
+    }
+
+    function resetUSSD() {
+      document.getElementById('ussd_simulator').style.display = 'none';
+      document.getElementById('ussd_output').textContent = '';
+      document.getElementById('ussd_input').value = '';
+      ussdSessionId = null;
+      ussdText = '';
+    }
+
+    // Lists
+    async function loadQRSessions() {
+      try {
+        const response = await fetch('/api/v1/qr/sessions?limit=10');
+        const sessions = await response.json();
+
+        const list = document.getElementById('qr_sessions_list');
+        if (sessions.length === 0) {
+          list.innerHTML = '<p>No QR sessions found</p>';
+          return;
+        }
+
+        list.innerHTML = sessions.map(s => `
+          <div style="padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px;">
+            <div><strong>ID:</strong> ${s.id}</div>
+            <div><strong>Type:</strong> ${s.type}</div>
+            <div><strong>Amount:</strong> ${s.amount} ${s.currency}</div>
+            <div><strong>Status:</strong> <span class="badge badge-${getStatusColor(s.status)}">${s.status}</span></div>
+            <div><strong>Created:</strong> ${new Date(s.created_at).toLocaleString()}</div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        document.getElementById('qr_sessions_list').innerHTML = `<p>Error: ${error.message}</p>`;
+      }
+    }
+
+    async function loadUSSDTransactions() {
+      const phone = document.getElementById('ussd_phone').value;
+
+      try {
+        const response = await fetch(`/api/v1/ussd/transactions?phone=${phone}&limit=10`);
+        const transactions = await response.json();
+
+        const list = document.getElementById('ussd_transactions_list');
+        if (transactions.length === 0) {
+          list.innerHTML = '<p>No transactions found</p>';
+          return;
+        }
+
+        list.innerHTML = transactions.map(t => `
+          <div style="padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px;">
+            <div><strong>Type:</strong> ${t.type}</div>
+            <div><strong>Amount:</strong> ${t.amount || 'N/A'} ${t.currency || ''}</div>
+            <div><strong>Status:</strong> <span class="badge badge-${getStatusColor(t.status)}">${t.status}</span></div>
+            <div><strong>Created:</strong> ${new Date(t.created_at).toLocaleString()}</div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        document.getElementById('ussd_transactions_list').innerHTML = `<p>Error: ${error.message}</p>`;
+      }
+    }
+
+    // Utilities
+    function showMessage(section, message, type) {
+      const el = document.getElementById(`${section}_message`);
+      el.textContent = message;
+      el.className = `message ${type}`;
+      el.style.display = 'block';
+
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 5000);
+    }
+
+    function displayResult(elementId, data) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      el.style.display = 'block';
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        pending: 'warning',
+        completed: 'success',
+        failed: 'error',
+        expired: 'error',
+        cancelled: 'error',
+        scanned: 'info'
+      };
+      return colors[status] || 'info';
+    }
+
+    // Auto-load on page load
+    window.addEventListener('load', () => {
+      loadQRSessions();
+      loadUSSDTransactions();
+    });
+  </script>
+</body>
+</html>

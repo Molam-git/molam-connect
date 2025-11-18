@@ -463,6 +463,399 @@ app.post('/api/v1/customers', async (req, res) => {
 });
 
 // ============================================================================
+// Brique 107: Offline Fallback (QR + USSD)
+// ============================================================================
+
+const QRService = require('./brique-107/src/qr-service');
+const USSDService = require('./brique-107/src/ussd-service');
+
+// ============================================================================
+// Brique 108: PaymentIntent & 3DS2 Orchestration
+// ============================================================================
+
+const createPaymentIntentRouter = require('./brique-108/src/routes/paymentIntents');
+const webhookPublisher = require('./brique-108/src/webhooks/publisher');
+const chargeProcessor = require('./brique-108/src/charge/processor');
+const chargeFinalizer = require('./brique-108/src/charge/finalizer');
+
+// Initialize pool references for Brique 108 modules
+webhookPublisher.setPool(pool);
+chargeProcessor.setPool(pool);
+chargeFinalizer.setPool(pool);
+
+// ============================================================================
+// Brique 109: Checkout Widgets & SDK Enhancements
+// ============================================================================
+
+const tokenService = require('./brique-109/src/tokens/service');
+const createCheckoutRouter = require('./brique-109/src/routes/checkout');
+
+// Initialize pool for tokenization service
+tokenService.setPool(pool);
+
+const qrService = new QRService(pool, {
+  hmacSecret: process.env.QR_HMAC_SECRET || 'default-secret-change-me',
+  baseUrl: process.env.PAY_URL || 'http://localhost:3000',
+  defaultTTL: parseInt(process.env.QR_DEFAULT_TTL || '300', 10)
+});
+
+const ussdService = new USSDService(pool, {
+  maxPinAttempts: parseInt(process.env.USSD_MAX_PIN_ATTEMPTS || '3', 10),
+  pinLockDuration: parseInt(process.env.USSD_PIN_LOCK_DURATION || '30', 10),
+  sessionTimeout: parseInt(process.env.USSD_SESSION_TIMEOUT || '300', 10)
+});
+
+// QR Code - Create
+app.post('/api/v1/qr/create', async (req, res) => {
+  try {
+    const qr = await qrService.createQRCode(req.body);
+    console.log(`✅ QR created: ${qr.id} - ${qr.type} - ${qr.amount} ${qr.currency}`);
+    res.status(201).json(qr);
+  } catch (error) {
+    console.error('❌ QR creation failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - Verify
+app.get('/api/v1/qr/verify/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { hmac } = req.query;
+
+    if (!hmac) {
+      return res.status(400).json({ error: 'HMAC required' });
+    }
+
+    const qr = await qrService.verifyQRCode(id, hmac);
+    console.log(`✅ QR verified: ${id}`);
+    res.json(qr);
+  } catch (error) {
+    console.error('❌ QR verification failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - Mark as scanned
+app.post('/api/v1/qr/:id/scan', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { scanned_by } = req.body;
+
+    const qr = await qrService.markScanned(id, scanned_by);
+    console.log(`✅ QR scanned: ${id}`);
+    res.json(qr);
+  } catch (error) {
+    console.error('❌ QR scan failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - Complete payment
+app.post('/api/v1/qr/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const qr = await qrService.completeQRPayment(id, req.body);
+    console.log(`✅ QR payment completed: ${id}`);
+    res.json(qr);
+  } catch (error) {
+    console.error('❌ QR completion failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - Cancel
+app.post('/api/v1/qr/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const qr = await qrService.cancelQRCode(id);
+    console.log(`✅ QR cancelled: ${id}`);
+    res.json(qr);
+  } catch (error) {
+    console.error('❌ QR cancellation failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - List sessions
+app.get('/api/v1/qr/sessions', async (req, res) => {
+  try {
+    const sessions = await qrService.listQRSessions(req.query);
+    res.json(sessions);
+  } catch (error) {
+    console.error('❌ QR session list failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// QR Code - Get stats
+app.get('/api/v1/qr/stats', async (req, res) => {
+  try {
+    const stats = await qrService.getQRStats(req.query);
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ QR stats failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// USSD - Handle callback (from gateway)
+app.post('/api/v1/ussd/callback', async (req, res) => {
+  try {
+    const response = await ussdService.handleUSSD(req.body);
+    console.log(`✅ USSD: ${req.body.sessionId} - ${req.body.msisdn}`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ USSD handler failed:', error);
+    res.status(500).json({
+      text: 'Erreur systeme. Veuillez reessayer.',
+      end: true
+    });
+  }
+});
+
+// USSD - Get session
+app.get('/api/v1/ussd/sessions/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM ussd_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ USSD session get failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// USSD - List transactions
+app.get('/api/v1/ussd/transactions', async (req, res) => {
+  try {
+    const { phone, limit = 20, offset = 0 } = req.query;
+
+    let query = 'SELECT * FROM ussd_transactions WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
+
+    if (phone) {
+      params.push(phone);
+      query += ` AND phone = $${paramIndex++}`;
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ USSD transaction list failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// USSD - Get menu texts
+app.get('/api/v1/ussd/menus', async (req, res) => {
+  try {
+    const { country_code, language } = req.query;
+
+    let query = 'SELECT * FROM ussd_menu_texts WHERE is_active = true';
+    const params = [];
+    let paramIndex = 1;
+
+    if (country_code) {
+      params.push(country_code);
+      query += ` AND country_code = $${paramIndex++}`;
+    }
+
+    if (language) {
+      params.push(language);
+      query += ` AND language = $${paramIndex++}`;
+    }
+
+    query += ' ORDER BY country_code, language, menu_key';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ USSD menu list failed:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// Brique 108: PaymentIntent API (Industrial-grade with 3DS2 + Webhooks)
+// ============================================================================
+
+// Mount PaymentIntent routes
+const paymentIntentRouter = createPaymentIntentRouter(pool);
+app.use('/api/v1/payment-intents', paymentIntentRouter);
+
+// ============================================================================
+// Brique 109: Checkout Widget API
+// ============================================================================
+
+// Mount Checkout routes
+const checkoutRouter = createCheckoutRouter(pool, tokenService);
+app.use('/api/v1/checkout', checkoutRouter);
+
+// Tokenization endpoint (served from tokens.molam.com in production)
+app.post('/api/v1/tokens', async (req, res) => {
+  try {
+    const {
+      pan,
+      exp_month,
+      exp_year,
+      cvc,
+      name,
+      billing_country = 'SN',
+      usage = 'single',
+      merchant_id = null,
+      customer_id = null,
+      vault_consent = false
+    } = req.body;
+
+    // Validate required fields
+    if (!pan || !exp_month || !exp_year || !cvc || !name) {
+      return res.status(400).json({ error: 'missing_required_fields' });
+    }
+
+    // Create token
+    const token = await tokenService.createToken({
+      pan,
+      exp_month: parseInt(exp_month, 10),
+      exp_year: parseInt(exp_year, 10),
+      cvc,
+      name,
+      billing_country,
+      usage,
+      merchant_id,
+      customer_id,
+      vault_consent
+    });
+
+    console.log(`✅ Token created: ${token.token} - ${token.card_brand} ${token.masked_pan}`);
+
+    res.status(201).json(token);
+  } catch (error) {
+    console.error('❌ Tokenization failed:', error);
+
+    if (error.message === 'invalid_card_number') {
+      return res.status(400).json({ error: 'invalid_card_number', message: 'Card number is invalid' });
+    }
+
+    if (error.message === 'card_expired') {
+      return res.status(400).json({ error: 'card_expired', message: 'Card has expired' });
+    }
+
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+// Serve hosted fields iframe
+app.use('/brique-109/iframe', express.static(path.join(__dirname, 'brique-109/iframe')));
+
+// Serve checkout widget demo
+app.use('/brique-109/web', express.static(path.join(__dirname, 'brique-109/web')));
+
+// 3DS2 Callback - Handle challenge response from ACS
+app.post('/api/v1/3ds/callback', async (req, res) => {
+  try {
+    const { threeDSServerTransID, cres } = req.body;
+
+    if (!cres) {
+      return res.status(400).json({ error: 'Missing CRes (Challenge Response)' });
+    }
+
+    // Find 3DS session
+    const { rows: [session] } = await pool.query(
+      `SELECT * FROM three_ds_sessions WHERE client_data->>'threeDSServerTransID' = $1`,
+      [threeDSServerTransID]
+    );
+
+    if (!session) {
+      return res.status(404).json({ error: '3DS session not found' });
+    }
+
+    // Verify 3DS result
+    const { verify3DSResult } = require('./brique-108/src/3ds/utils');
+    const result = verify3DSResult(cres);
+
+    // Update 3DS session
+    await pool.query(
+      `UPDATE three_ds_sessions
+       SET status = $2,
+           trans_status = $3,
+           result = $4,
+           eci = $5,
+           cavv = $6,
+           xid = $7,
+           authentication_value = $8,
+           completed_at = now(),
+           updated_at = now()
+       WHERE id = $1`,
+      [
+        session.id,
+        result.status,
+        result.trans_status,
+        JSON.stringify(result),
+        result.eci,
+        result.cavv,
+        result.xid,
+        result.authentication_value
+      ]
+    );
+
+    // Get payment intent
+    const { rows: [pi] } = await pool.query(
+      'SELECT * FROM payment_intents WHERE id = $1',
+      [session.payment_intent_id]
+    );
+
+    if (!pi) {
+      return res.status(404).json({ error: 'PaymentIntent not found' });
+    }
+
+    // If authenticated, proceed to charge
+    if (result.authenticated || result.attempted) {
+      const { providerChargeCapture } = require('./brique-108/src/charge/processor');
+      const { finalizeSuccess, finalizeFailure } = require('./brique-108/src/charge/finalizer');
+
+      const charge = await providerChargeCapture(pi.selected_payment_method, pi);
+
+      if (charge.status === 'captured') {
+        await finalizeSuccess(pi.id, charge);
+        console.log(`✅ 3DS authenticated + charged: ${pi.id}`);
+        return res.json({ status: 'succeeded', payment_intent_id: pi.id });
+      } else {
+        await finalizeFailure(pi.id, charge);
+        return res.status(400).json({ status: 'failed', error: charge.error });
+      }
+    } else {
+      // Authentication failed
+      const { finalizeFailure } = require('./brique-108/src/charge/finalizer');
+      await finalizeFailure(pi.id, {
+        error: '3DS authentication failed',
+        charge: { failure_code: '3ds_failed', failure_message: '3DS authentication failed' }
+      });
+
+      return res.status(400).json({
+        status: 'failed',
+        error: '3DS authentication failed'
+      });
+    }
+  } catch (error) {
+    console.error('❌ 3DS callback failed:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
 // 404 Handler
 // ============================================================================
 
@@ -500,6 +893,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`📍 Health Check: http://${HOST}:${PORT}/health`);
   console.log('\n' + '='.repeat(60));
   console.log('Available APIs:');
+  console.log('\n  Brique 104-106: Basic Payment APIs');
   console.log('  POST /api/v1/payment_intents');
   console.log('  GET  /api/v1/payment_intents/:id');
   console.log('  POST /api/v1/payment_intents/:id/confirm');
@@ -507,6 +901,26 @@ const server = app.listen(PORT, HOST, () => {
   console.log('  POST /api/v1/otp/create');
   console.log('  POST /api/v1/otp/verify');
   console.log('  POST /api/v1/customers');
+  console.log('\n  Brique 107: Offline Fallback (QR + USSD)');
+  console.log('  POST /api/v1/qr/create');
+  console.log('  GET  /api/v1/qr/verify/:id');
+  console.log('  POST /api/v1/ussd/callback');
+  console.log('\n  Brique 108: PaymentIntent (3DS2 + Webhooks)');
+  console.log('  POST /api/v1/payment-intents');
+  console.log('  GET  /api/v1/payment-intents/:id');
+  console.log('  POST /api/v1/payment-intents/:id/confirm');
+  console.log('  POST /api/v1/payment-intents/:id/capture');
+  console.log('  POST /api/v1/payment-intents/:id/cancel');
+  console.log('  POST /api/v1/payment-intents/:id/refund');
+  console.log('  POST /api/v1/3ds/callback');
+  console.log('\n  Brique 109: Checkout Widgets & Tokenization');
+  console.log('  POST /api/v1/checkout/create_session');
+  console.log('  GET  /api/v1/checkout/session/:id');
+  console.log('  POST /api/v1/checkout/confirm');
+  console.log('  GET  /api/v1/checkout/session/:id/qr');
+  console.log('  POST /api/v1/checkout/session/:id/cancel');
+  console.log('  POST /api/v1/tokens (PCI-compliant tokenization)');
+  console.log('\n  Widget Demo: http://localhost:3000/brique-109/web/CheckoutWidget.html');
   console.log('='.repeat(60) + '\n');
 });
 

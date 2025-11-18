@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Checkout Widget - Apple-like Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: #f5f5f7;
+      padding: 40px 20px;
+    }
+
+    .demo-container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .molam-widget {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .merchant-info h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 4px;
+    }
+
+    .merchant-info .amount {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0A84FF;
+    }
+
+    .merchant-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #0A84FF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 6px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #d2d2d7;
+      border-radius: 10px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: #0A84FF;
+    }
+
+    .iframe-container {
+      border: 1px solid #d2d2d7;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .iframe-label {
+      font-size: 12px;
+      color: #86868b;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .lock-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .pay-button {
+      width: 100%;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: 600;
+      background: #0A84FF;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .pay-button:hover:not(:disabled) {
+      background: #0077ED;
+    }
+
+    .pay-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .status-success {
+      background: #D1F2EB;
+      color: #0A6847;
+    }
+
+    .status-error {
+      background: #FADBD8;
+      color: #C0392B;
+    }
+
+    .status-loading {
+      background: #EBF5FB;
+      color: #3498DB;
+    }
+
+    iframe {
+      border: none;
+      width: 100%;
+      height: 280px;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="molam-widget" id="molam-checkout">
+      <div class="widget-header">
+        <div class="merchant-info">
+          <h2 id="merchant-name">Loading...</h2>
+          <div class="amount" id="amount-display">-</div>
+        </div>
+        <div class="merchant-logo" id="merchant-logo">M</div>
+      </div>
+
+      <div class="field">
+        <label for="payment-method">Payment Method</label>
+        <select id="payment-method">
+          <option value="wallet">Molam Wallet</option>
+          <option value="card">Card</option>
+          <option value="bank">Bank Transfer</option>
+        </select>
+      </div>
+
+      <div id="card-fields" style="display: none;">
+        <div class="iframe-label">
+          <svg class="lock-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+          </svg>
+          Secure card input (PCI-compliant)
+        </div>
+        <div class="iframe-container">
+          <iframe id="hosted-fields" src="/brique-109/iframe/hosted_card.html" allow="payment"></iframe>
+        </div>
+      </div>
+
+      <button class="pay-button" id="pay-button" disabled>
+        Initialize...
+      </button>
+
+      <div id="status-message"></div>
+    </div>
+  </div>
+
+  <script>
+    // Molam Checkout Widget - Vanilla JavaScript Implementation
+    class MolamCheckout {
+      constructor(options) {
+        this.options = options;
+        this.session = null;
+        this.token = null;
+        this.loading = false;
+
+        this.elements = {
+          merchantName: document.getElementById('merchant-name'),
+          amountDisplay: document.getElementById('amount-display'),
+          paymentMethod: document.getElementById('payment-method'),
+          cardFields: document.getElementById('card-fields'),
+          payButton: document.getElementById('pay-button'),
+          statusMessage: document.getElementById('status-message'),
+          hostedFieldsIframe: document.getElementById('hosted-fields')
+        };
+
+        this.init();
+      }
+
+      async init() {
+        try {
+          // Create session
+          await this.createSession();
+
+          // Setup event listeners
+          this.setupEventListeners();
+
+          // Setup hosted fields communication
+          this.setupHostedFields();
+
+          this.elements.payButton.disabled = false;
+          this.elements.payButton.textContent = `Pay ${this.formatAmount(this.session.amount)} ${this.session.currency}`;
+        } catch (error) {
+          this.showError('Initialization failed: ' + error.message);
+        }
+      }
+
+      async createSession() {
+        this.showStatus('Creating session...', 'loading');
+
+        const response = await fetch('/api/v1/checkout/create_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            external_id: this.options.sessionExternalId || `demo-${Date.now()}`,
+            merchant_id: this.options.merchantId || '00000000-0000-0000-0000-000000000001',
+            amount: this.options.amount || 55000,
+            currency: this.options.currency || 'XOF',
+            allowed_methods: ['wallet', 'card', 'bank']
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Session creation failed');
+        }
+
+        this.session = await response.json();
+
+        // Update UI
+        this.elements.merchantName.textContent = this.session.merchant_name || 'Merchant';
+        this.elements.amountDisplay.textContent = `${this.formatAmount(this.session.amount)} ${this.session.currency}`;
+
+        this.showStatus('');
+      }
+
+      setupEventListeners() {
+        this.elements.paymentMethod.addEventListener('change', (e) => {
+          const method = e.target.value;
+          this.elements.cardFields.style.display = method === 'card' ? 'block' : 'none';
+        });
+
+        this.elements.payButton.addEventListener('click', () => this.processPayment());
+      }
+
+      setupHostedFields() {
+        window.addEventListener('message', (event) => {
+          if (event.data.type === 'MOLAM_HOSTED_TOKENIZATION_SUCCESS') {
+            this.token = event.data.data.token;
+            this.confirmPayment();
+          } else if (event.data.type === 'MOLAM_HOSTED_TOKENIZATION_ERROR') {
+            this.showError('Card validation failed: ' + (event.data.data.error || 'Unknown error'));
+            this.loading = false;
+            this.elements.payButton.disabled = false;
+          }
+        });
+      }
+
+      async processPayment() {
+        if (this.loading) return;
+
+        this.loading = true;
+        this.elements.payButton.disabled = true;
+
+        const method = this.elements.paymentMethod.value;
+
+        try {
+          if (method === 'card') {
+            // Request tokenization from hosted fields
+            this.showStatus('Securing card information...', 'loading');
+            this.elements.hostedFieldsIframe.contentWindow.postMessage({
+              type: 'TOKENIZE_CARD',
+              merchant_id: this.session.merchant_id,
+              usage: 'single'
+            }, '*');
+          } else {
+            // Direct payment (wallet/bank)
+            await this.confirmPayment({ type: method });
+          }
+        } catch (error) {
+          this.showError(error.message);
+          this.loading = false;
+          this.elements.payButton.disabled = false;
+        }
+      }
+
+      async confirmPayment(paymentMethod = null) {
+        this.showStatus('Processing payment...', 'loading');
+
+        const payload = {
+          session_id: this.session.id
+        };
+
+        if (this.token) {
+          payload.payment_method_token = this.token;
+        } else if (paymentMethod) {
+          payload.payment_method = paymentMethod;
+        }
+
+        const response = await fetch('/api/v1/checkout/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'succeeded') {
+          this.showSuccess('Payment successful!');
+          if (this.options.onSuccess) {
+            this.options.onSuccess(result);
+          }
+        } else if (result.status === 'requires_action') {
+          // Handle 3DS2 or other authentication
+          this.showStatus('Additional authentication required...', 'loading');
+          // TODO: Implement 3DS2 flow
+        } else {
+          this.showError('Payment failed: ' + (result.error || 'Unknown error'));
+        }
+
+        this.loading = false;
+        this.elements.payButton.disabled = false;
+      }
+
+      formatAmount(amount) {
+        return new Intl.NumberFormat('fr-FR').format(amount);
+      }
+
+      showStatus(message, type = '') {
+        if (!message) {
+          this.elements.statusMessage.innerHTML = '';
+          return;
+        }
+
+        this.elements.statusMessage.innerHTML = message;
+        this.elements.statusMessage.className = `status-message status-${type}`;
+      }
+
+      showSuccess(message) {
+        this.showStatus(message, 'success');
+      }
+
+      showError(message) {
+        this.showStatus(message, 'error');
+      }
+    }
+
+    // Initialize widget
+    const widget = new MolamCheckout({
+      sessionExternalId: 'DEMO-' + Date.now(),
+      merchantId: '00000000-0000-0000-0000-000000000001',
+      amount: 55000,
+      currency: 'XOF',
+      onSuccess: (result) => {
+        console.log('Payment successful:', result);
+      },
+      onError: (error) => {
+        console.error('Payment failed:', error);
+      }
+    });
+  </script>
+</body>
+</html>
