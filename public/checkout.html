@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Connect - Checkout Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 32px;
+    }
+
+    .order-summary {
+      background: #f5f5f7;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .order-item:last-child {
+      margin-bottom: 0;
+      padding-top: 12px;
+      border-top: 1px solid #d2d2d7;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .payment-form {
+      margin-top: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    #submit-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #submit-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    #submit-button:active {
+      transform: translateY(0);
+    }
+
+    #submit-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.success {
+      background: rgba(52, 199, 89, 0.1);
+      color: #34c759;
+      border: 1px solid #34c759;
+    }
+
+    .message.error {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+      border: 1px solid #ff3b30;
+    }
+
+    .message.info {
+      background: rgba(0, 122, 255, 0.1);
+      color: #007aff;
+      border: 1px solid #007aff;
+    }
+
+    .footer {
+      padding: 24px 32px;
+      background: #f5f5f7;
+      text-align: center;
+      font-size: 12px;
+      color: #86868b;
+    }
+
+    .secure-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .secure-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+      <h1>Checkout</h1>
+      <p>Secure payment powered by Molam Connect</p>
+    </div>
+
+    <div class="content">
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <div class="order-item">
+          <span>Premium Subscription</span>
+          <span>50,000 XOF</span>
+        </div>
+        <div class="order-item">
+          <span>Tax (10%)</span>
+          <span>5,000 XOF</span>
+        </div>
+        <div class="order-item">
+          <span>Total</span>
+          <span>55,000 XOF</span>
+        </div>
+      </div>
+
+      <!-- Payment Form -->
+      <form id="payment-form" class="payment-form">
+        <div class="form-group">
+          <label for="cardholder-name">Cardholder Name</label>
+          <input type="text" id="cardholder-name" placeholder="John Doe" required>
+        </div>
+
+        <div class="form-group">
+          <label for="card-number">Card Number</label>
+          <input type="text" id="card-number" placeholder="4242 4242 4242 4242" maxlength="19" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="expiry">Expiry Date</label>
+            <input type="text" id="expiry" placeholder="MM/YY" maxlength="5" required>
+          </div>
+          <div class="form-group">
+            <label for="cvv">CVV</label>
+            <input type="text" id="cvv" placeholder="123" maxlength="4" required>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-button">Pay 55,000 XOF</button>
+        <div id="message" class="message"></div>
+      </form>
+    </div>
+
+    <div class="footer">
+      <div class="secure-badge">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+        </svg>
+        <span>Secure 256-bit SSL encrypted payment</span>
+      </div>
+      <p style="margin-top: 12px;">Powered by Molam Connect · PCI DSS Compliant</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('payment-form');
+    const submitButton = document.getElementById('submit-button');
+    const messageEl = document.getElementById('message');
+
+    // Format card number input
+    document.getElementById('card-number').addEventListener('input', (e) => {
+      let value = e.target.value.replace(/\s/g, '');
+      let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+      e.target.value = formattedValue;
+    });
+
+    // Format expiry input
+    document.getElementById('expiry').addEventListener('input', (e) => {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length >= 2) {
+        value = value.slice(0, 2) + '/' + value.slice(2, 4);
+      }
+      e.target.value = value;
+    });
+
+    // CVV only numbers
+    document.getElementById('cvv').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '');
+    });
+
+    function showMessage(message, type) {
+      messageEl.textContent = message;
+      messageEl.className = `message ${type}`;
+      messageEl.style.display = 'block';
+    }
+
+    function hideMessage() {
+      messageEl.style.display = 'none';
+    }
+
+    function setLoading(loading) {
+      submitButton.disabled = loading;
+      if (loading) {
+        submitButton.innerHTML = '<span class="loading"></span> Processing...';
+      } else {
+        submitButton.textContent = 'Pay 55,000 XOF';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMessage();
+
+      const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+      const expiry = document.getElementById('expiry').value;
+      const cvv = document.getElementById('cvv').value;
+      const name = document.getElementById('cardholder-name').value;
+
+      // Basic validation
+      if (cardNumber.length < 13 || cardNumber.length > 19) {
+        showMessage('Invalid card number', 'error');
+        return;
+      }
+
+      if (!expiry.match(/^\d{2}\/\d{2}$/)) {
+        showMessage('Invalid expiry date (use MM/YY)', 'error');
+        return;
+      }
+
+      if (cvv.length < 3 || cvv.length > 4) {
+        showMessage('Invalid CVV', 'error');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        // Step 1: Create Payment Intent
+        showMessage('Creating payment intent...', 'info');
+        const paymentIntentResponse = await fetch('/api/v1/payment_intents', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: 55000,
+            currency: 'XOF',
+            description: 'Premium Subscription',
+            metadata: {
+              customer_name: name,
+            }
+          }),
+        });
+
+        if (!paymentIntentResponse.ok) {
+          throw new Error('Failed to create payment intent');
+        }
+
+        const paymentIntent = await paymentIntentResponse.json();
+        console.log('Payment Intent created:', paymentIntent);
+
+        // Step 2: Make Auth Decision
+        showMessage('Analyzing transaction risk...', 'info');
+        const authResponse = await fetch('/api/v1/auth/decide', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            payment_id: paymentIntent.id,
+            amount: 55000,
+            currency: 'XOF',
+            country: 'SN',
+            bin: cardNumber.slice(0, 6),
+            device: {
+              ip: '192.168.1.1',
+              user_agent: navigator.userAgent,
+            }
+          }),
+        });
+
+        if (!authResponse.ok) {
+          throw new Error('Auth decision failed');
+        }
+
+        const authDecision = await authResponse.json();
+        console.log('Auth Decision:', authDecision);
+
+        // Step 3: Handle authentication based on decision
+        if (authDecision.recommended_method === 'otp_sms' || authDecision.recommended_method === 'otp_voice') {
+          showMessage(`OTP authentication required (${authDecision.recommended_method})`, 'info');
+
+          // Create OTP
+          const otpResponse = await fetch('/api/v1/otp/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              phone: '+221771234567', // Demo phone number
+              method: authDecision.recommended_method === 'otp_voice' ? 'voice' : 'sms',
+              context: {
+                payment_id: paymentIntent.id,
+                amount: 55000,
+              }
+            }),
+          });
+
+          if (!otpResponse.ok) {
+            throw new Error('Failed to send OTP');
+          }
+
+          const otpData = await otpResponse.json();
+          console.log('OTP sent:', otpData);
+
+          showMessage('OTP sent! Check the server console for the code (dev mode)', 'info');
+
+          // Prompt for OTP code
+          const otpCode = prompt('Enter the OTP code (check server console in dev mode):');
+
+          if (!otpCode) {
+            throw new Error('OTP verification cancelled');
+          }
+
+          // Verify OTP
+          const verifyResponse = await fetch('/api/v1/otp/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              otp_id: otpData.otp_id,
+              code: otpCode,
+            }),
+          });
+
+          if (!verifyResponse.ok) {
+            throw new Error('OTP verification failed');
+          }
+
+          console.log('OTP verified successfully');
+        } else if (authDecision.recommended_method === '3ds2') {
+          showMessage('3D Secure authentication required...', 'info');
+          // In production, redirect to 3DS2 challenge
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate 3DS
+        }
+
+        // Step 4: Confirm Payment
+        showMessage('Confirming payment...', 'info');
+        const confirmResponse = await fetch(`/api/v1/payment_intents/${paymentIntent.id}/confirm`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_secret: paymentIntent.client_secret,
+            payment_method: 'card',
+            card: {
+              number: cardNumber,
+              exp_month: expiry.split('/')[0],
+              exp_year: '20' + expiry.split('/')[1],
+              cvc: cvv,
+              name: name,
+            }
+          }),
+        });
+
+        if (!confirmResponse.ok) {
+          throw new Error('Payment confirmation failed');
+        }
+
+        const confirmedPayment = await confirmResponse.json();
+        console.log('Payment confirmed:', confirmedPayment);
+
+        // Success!
+        showMessage('✅ Payment successful! Thank you for your purchase.', 'success');
+        submitButton.textContent = 'Payment Complete ✓';
+        submitButton.style.background = '#34c759';
+
+        // Reset form after 3 seconds
+        setTimeout(() => {
+          form.reset();
+          setLoading(false);
+          hideMessage();
+        }, 3000);
+
+      } catch (error) {
+        console.error('Payment error:', error);
+        showMessage(error.message || 'Payment failed. Please try again.', 'error');
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

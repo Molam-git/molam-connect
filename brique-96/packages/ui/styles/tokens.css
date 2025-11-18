@@ -1,0 +1,156 @@
+/**
+ * Design tokens for Molam UI Components
+ * Apple-like minimal design system
+ */
+
+:root {
+  /* === Colors === */
+  /* Primary */
+  --molam-primary: #0a84ff;
+  --molam-primary-hover: #0070e0;
+  --molam-primary-active: #005bb5;
+
+  /* Accent */
+  --molam-accent: #30d158;
+  --molam-accent-hover: #28b34a;
+
+  /* Neutrals */
+  --molam-bg: #ffffff;
+  --molam-bg-secondary: #f5f5f7;
+  --molam-bg-tertiary: #e8e8ed;
+
+  --molam-text: #0b1220;
+  --molam-text-secondary: #6e6e73;
+  --molam-text-tertiary: #86868b;
+
+  --molam-border: #d2d2d7;
+  --molam-border-light: #e5e5ea;
+
+  /* Status colors */
+  --molam-success: #30d158;
+  --molam-success-bg: #ecfdf3;
+
+  --molam-error: #ff3b30;
+  --molam-error-bg: #fef2f2;
+
+  --molam-warning: #ff9500;
+  --molam-warning-bg: #fffbeb;
+
+  --molam-info: #0a84ff;
+  --molam-info-bg: #f0f9ff;
+
+  /* === Typography === */
+  --molam-font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --molam-font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --molam-font-size-xs: 0.75rem;     /* 12px */
+  --molam-font-size-sm: 0.875rem;    /* 14px */
+  --molam-font-size-base: 1rem;      /* 16px */
+  --molam-font-size-lg: 1.125rem;    /* 18px */
+  --molam-font-size-xl: 1.25rem;     /* 20px */
+  --molam-font-size-2xl: 1.5rem;     /* 24px */
+  --molam-font-size-3xl: 1.875rem;   /* 30px */
+
+  --molam-font-weight-normal: 400;
+  --molam-font-weight-medium: 500;
+  --molam-font-weight-semibold: 600;
+  --molam-font-weight-bold: 700;
+
+  --molam-line-height-tight: 1.25;
+  --molam-line-height-normal: 1.5;
+  --molam-line-height-relaxed: 1.75;
+
+  /* === Spacing === */
+  --molam-space-1: 0.25rem;    /* 4px */
+  --molam-space-2: 0.5rem;     /* 8px */
+  --molam-space-3: 0.75rem;    /* 12px */
+  --molam-space-4: 1rem;       /* 16px */
+  --molam-space-5: 1.25rem;    /* 20px */
+  --molam-space-6: 1.5rem;     /* 24px */
+  --molam-space-8: 2rem;       /* 32px */
+  --molam-space-10: 2.5rem;    /* 40px */
+  --molam-space-12: 3rem;      /* 48px */
+
+  /* === Border radius (Apple-style rounded corners) === */
+  --molam-radius-sm: 6px;
+  --molam-radius: 10px;
+  --molam-radius-md: 12px;
+  --molam-radius-lg: 14px;
+  --molam-radius-xl: 18px;
+  --molam-radius-2xl: 22px;
+  --molam-radius-full: 9999px;
+
+  /* === Shadows (subtle Apple-style) === */
+  --molam-shadow-xs: 0 1px 2px rgba(11, 18, 32, 0.04);
+  --molam-shadow-sm: 0 1px 3px rgba(11, 18, 32, 0.06), 0 1px 2px rgba(11, 18, 32, 0.04);
+  --molam-shadow: 0 4px 6px rgba(11, 18, 32, 0.06), 0 2px 4px rgba(11, 18, 32, 0.04);
+  --molam-shadow-md: 0 6px 12px rgba(11, 18, 32, 0.08), 0 2px 4px rgba(11, 18, 32, 0.04);
+  --molam-shadow-lg: 0 10px 20px rgba(11, 18, 32, 0.1), 0 3px 6px rgba(11, 18, 32, 0.06);
+  --molam-shadow-xl: 0 20px 30px rgba(11, 18, 32, 0.12), 0 5px 10px rgba(11, 18, 32, 0.08);
+
+  /* === Transitions (smooth Apple-like) === */
+  --molam-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --molam-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --molam-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === Z-index === */
+  --molam-z-dropdown: 1000;
+  --molam-z-modal: 2000;
+  --molam-z-popover: 3000;
+  --molam-z-tooltip: 4000;
+}
+
+/* Dark theme */
+[data-theme="dark"], .theme-dark {
+  --molam-primary: #0a84ff;
+  --molam-primary-hover: #409cff;
+  --molam-primary-active: #0070e0;
+
+  --molam-accent: #30d158;
+  --molam-accent-hover: #3de768;
+
+  --molam-bg: #000000;
+  --molam-bg-secondary: #1c1c1e;
+  --molam-bg-tertiary: #2c2c2e;
+
+  --molam-text: #ffffff;
+  --molam-text-secondary: #ebebf5;
+  --molam-text-tertiary: #aeaeb2;
+
+  --molam-border: #38383a;
+  --molam-border-light: #48484a;
+
+  --molam-success: #30d158;
+  --molam-success-bg: #1e3a29;
+
+  --molam-error: #ff453a;
+  --molam-error-bg: #3a1f1e;
+
+  --molam-warning: #ff9f0a;
+  --molam-warning-bg: #3a2e1e;
+
+  --molam-info: #64d2ff;
+  --molam-info-bg: #1e2f3a;
+}
+
+/* High contrast mode (accessibility) */
+@media (prefers-contrast: high) {
+  :root {
+    --molam-border: #000000;
+    --molam-text-secondary: #1d1d1f;
+  }
+
+  [data-theme="dark"], .theme-dark {
+    --molam-border: #ffffff;
+    --molam-text-secondary: #f5f5f7;
+  }
+}
+
+/* Reduced motion (accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --molam-transition-fast: 0ms;
+    --molam-transition: 0ms;
+    --molam-transition-slow: 0ms;
+  }
+}

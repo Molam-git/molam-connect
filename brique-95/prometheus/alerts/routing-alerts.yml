@@ -1,0 +1,335 @@
+groups:
+  - name: routing_service_alerts
+    interval: 30s
+    rules:
+      # =====================================================
+      # Critical Alerts - Immediate Action Required
+      # =====================================================
+
+      - alert: RoutingHighErrorRate
+        expr: |
+          (
+            sum(rate(routing_requests_total{result=~"fail|fallback"}[5m]))
+            / sum(rate(routing_requests_total[5m]))
+          ) > 0.005
+        for: 5m
+        labels:
+          severity: critical
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "High error rate in routing service"
+          description: "Routing service error rate is {{ $value | humanizePercentage }} (threshold: 0.5%)"
+          runbook: "https://runbooks.molam.com/routing/high-error-rate"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: RoutingLatencyP95High
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(routing_request_duration_seconds_bucket[5m])) by (le)
+          ) * 1000 > 120
+        for: 10m
+        labels:
+          severity: critical
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "P95 latency exceeds SLO target"
+          description: "Routing P95 latency is {{ $value | humanize }}ms (SLO: <120ms)"
+          runbook: "https://runbooks.molam.com/routing/high-latency"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: RoutingServiceDown
+        expr: |
+          up{job="routing-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "Routing service is down"
+          description: "Routing service instance {{ $labels.instance }} is unreachable"
+          runbook: "https://runbooks.molam.com/routing/service-down"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: SLOViolation30Day
+        expr: |
+          (
+            sum(rate(routing_requests_total{result="success"}[30d]))
+            / sum(rate(routing_requests_total[30d]))
+          ) < 0.9995
+        for: 1h
+        labels:
+          severity: critical
+          component: routing-service
+          team: platform
+          slo: availability
+        annotations:
+          summary: "30-day availability SLO violated"
+          description: "30-day success rate is {{ $value | humanizePercentage }} (SLO: 99.95%)"
+          runbook: "https://runbooks.molam.com/routing/slo-violation"
+          dashboard: "https://grafana.molam.com/d/slo-error-budget"
+
+      - alert: ErrorBudgetBurnRateHigh
+        expr: |
+          (
+            (1 - (sum(rate(routing_requests_total{result="success"}[1h]))
+                  / sum(rate(routing_requests_total[1h]))))
+            / (1 - 0.9995)
+          ) > 10
+        for: 15m
+        labels:
+          severity: critical
+          component: routing-service
+          team: platform
+          slo: availability
+        annotations:
+          summary: "Error budget burning too fast"
+          description: "Error budget burn rate is {{ $value }}x (threshold: 10x)"
+          runbook: "https://runbooks.molam.com/routing/error-budget-burn"
+          dashboard: "https://grafana.molam.com/d/slo-error-budget"
+
+      # =====================================================
+      # Warning Alerts - Attention Needed
+      # =====================================================
+
+      - alert: RoutingErrorRateElevated
+        expr: |
+          (
+            sum(rate(routing_requests_total{result=~"fail|fallback"}[10m]))
+            / sum(rate(routing_requests_total[10m]))
+          ) > 0.001
+        for: 10m
+        labels:
+          severity: warning
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "Elevated error rate in routing service"
+          description: "Routing service error rate is {{ $value | humanizePercentage }} (threshold: 0.1%)"
+          runbook: "https://runbooks.molam.com/routing/elevated-errors"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: RoutingLatencyP95Elevated
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(routing_request_duration_seconds_bucket[10m])) by (le)
+          ) * 1000 > 100
+        for: 15m
+        labels:
+          severity: warning
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "Elevated P95 latency"
+          description: "Routing P95 latency is {{ $value | humanize }}ms (warning: >100ms)"
+          runbook: "https://runbooks.molam.com/routing/elevated-latency"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: ErrorBudgetBurnRateModerate
+        expr: |
+          (
+            (1 - (sum(rate(routing_requests_total{result="success"}[6h]))
+                  / sum(rate(routing_requests_total[6h]))))
+            / (1 - 0.9995)
+          ) > 3
+        for: 1h
+        labels:
+          severity: warning
+          component: routing-service
+          team: platform
+          slo: availability
+        annotations:
+          summary: "Error budget burning moderately fast"
+          description: "Error budget burn rate is {{ $value }}x (threshold: 3x)"
+          runbook: "https://runbooks.molam.com/routing/error-budget-burn"
+          dashboard: "https://grafana.molam.com/d/slo-error-budget"
+
+      # =====================================================
+      # SIRA AI Service Alerts
+      # =====================================================
+
+      - alert: SiraCallFailures
+        expr: |
+          sum(rate(routing_sira_calls_failed_total[10m])) > 5
+        for: 10m
+        labels:
+          severity: critical
+          component: sira
+          team: ml-platform
+        annotations:
+          summary: "SIRA service experiencing high failure rate"
+          description: "SIRA failures: {{ $value }} per minute"
+          runbook: "https://runbooks.molam.com/routing/sira-failures"
+          dashboard: "https://grafana.molam.com/d/sira-health"
+
+      - alert: SiraLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(routing_sira_latency_seconds_bucket[5m])) by (le)
+          ) * 1000 > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: sira
+          team: ml-platform
+        annotations:
+          summary: "SIRA API latency is high"
+          description: "SIRA P95 latency is {{ $value | humanize }}ms (threshold: 100ms)"
+          runbook: "https://runbooks.molam.com/routing/sira-latency"
+          dashboard: "https://grafana.molam.com/d/sira-health"
+
+      - alert: SiraSuccessRateLow
+        expr: |
+          (
+            sum(rate(routing_sira_calls_total{result="success"}[10m]))
+            / sum(rate(routing_sira_calls_total[10m]))
+          ) < 0.95
+        for: 10m
+        labels:
+          severity: warning
+          component: sira
+          team: ml-platform
+        annotations:
+          summary: "SIRA success rate below threshold"
+          description: "SIRA success rate is {{ $value | humanizePercentage }} (threshold: 95%)"
+          runbook: "https://runbooks.molam.com/routing/sira-degraded"
+          dashboard: "https://grafana.molam.com/d/sira-health"
+
+      # =====================================================
+      # Cache & Redis Alerts
+      # =====================================================
+
+      - alert: RedisCacheHitRateLow
+        expr: |
+          (
+            sum(rate(routing_cache_hit_total[10m]))
+            / (sum(rate(routing_cache_hit_total[10m])) + sum(rate(routing_cache_miss_total[10m])))
+          ) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+          component: redis
+          team: platform
+        annotations:
+          summary: "Redis cache hit rate is low"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+          runbook: "https://runbooks.molam.com/routing/low-cache-hit-rate"
+          dashboard: "https://grafana.molam.com/d/cache-redis"
+
+      - alert: RedisLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(routing_redis_latency_seconds_bucket[5m])) by (le, operation)
+          ) * 1000 > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+          team: platform
+        annotations:
+          summary: "Redis operation latency is high"
+          description: "Redis {{ $labels.operation }} P95 latency is {{ $value | humanize }}ms (threshold: 10ms)"
+          runbook: "https://runbooks.molam.com/routing/redis-slow"
+          dashboard: "https://grafana.molam.com/d/cache-redis"
+
+      - alert: RedisDown
+        expr: |
+          redis_up{job="routing-redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: redis
+          team: platform
+        annotations:
+          summary: "Redis instance is down"
+          description: "Redis instance {{ $labels.instance }} is unreachable"
+          runbook: "https://runbooks.molam.com/routing/redis-down"
+          dashboard: "https://grafana.molam.com/d/cache-redis"
+
+      # =====================================================
+      # Database Alerts
+      # =====================================================
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          routing_db_connections_active / routing_db_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+          team: platform
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Connection pool usage is {{ $value | humanizePercentage }}"
+          runbook: "https://runbooks.molam.com/routing/db-pool-exhausted"
+
+      - alert: DatabaseErrorRateHigh
+        expr: |
+          sum(rate(routing_db_error_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+          team: platform
+        annotations:
+          summary: "High database error rate"
+          description: "Database errors: {{ $value }} per minute"
+          runbook: "https://runbooks.molam.com/routing/db-errors"
+
+      # =====================================================
+      # Fallback & Route Distribution Alerts
+      # =====================================================
+
+      - alert: HighFallbackRate
+        expr: |
+          (
+            sum(rate(routing_fallback_used_total[10m]))
+            / sum(rate(routing_requests_total[10m]))
+          ) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "High fallback route usage"
+          description: "Fallback rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+          runbook: "https://runbooks.molam.com/routing/high-fallback"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      - alert: WalletCheckFailureRateHigh
+        expr: |
+          (
+            sum(rate(routing_wallet_checks_total{result="failed"}[10m]))
+            / sum(rate(routing_wallet_checks_total[10m]))
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: wallet
+          team: platform
+        annotations:
+          summary: "High wallet check failure rate"
+          description: "Wallet check failure rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+          runbook: "https://runbooks.molam.com/routing/wallet-checks-failing"
+          dashboard: "https://grafana.molam.com/d/routing-overview"
+
+      # =====================================================
+      # Idempotency Alerts
+      # =====================================================
+
+      - alert: IdempotencyConflictsHigh
+        expr: |
+          rate(routing_idempotency_conflicts_total[10m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: routing-service
+          team: platform
+        annotations:
+          summary: "High rate of idempotency conflicts"
+          description: "Idempotency conflicts: {{ $value }} per minute"
+          runbook: "https://runbooks.molam.com/routing/idempotency-conflicts"
+          dashboard: "https://grafana.molam.com/d/routing-overview"

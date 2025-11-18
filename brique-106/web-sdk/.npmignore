@@ -1,0 +1,46 @@
+# Source files
+src/
+tests/
+examples/
+
+# Configuration files
+.babelrc
+rollup.config.js
+tsconfig.json
+.eslintrc.js
+.prettierrc
+
+# Development files
+*.spec.ts
+*.test.ts
+*.md
+!README.md
+
+# Build artifacts
+node_modules/
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+docs/
+
+# Misc
+.env
+.env.*
+*.log

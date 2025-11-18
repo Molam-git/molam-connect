@@ -1,0 +1,43 @@
+{
+  "name": "@molam/checkout",
+  "version": "1.0.0",
+  "description": "Universal JavaScript SDK for integrating Molam payments into any website or application",
+  "main": "js/molam-checkout.js",
+  "types": "js/molam-checkout.d.ts",
+  "files": [
+    "js/molam-checkout.js",
+    "js/molam-checkout.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "molam",
+    "payment",
+    "checkout",
+    "wallet",
+    "africa",
+    "xof",
+    "xaf",
+    "mobile-money",
+    "payment-gateway",
+    "sdk"
+  ],
+  "author": "Molam <support@molam.co>",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/molam/molam-checkout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/molam/molam-checkout/issues"
+  },
+  "homepage": "https://docs.molam.com/sdk",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "browser": "js/molam-checkout.js",
+  "cdn": "https://cdn.molam.com/sdk/v1/molam-checkout.js"
+}

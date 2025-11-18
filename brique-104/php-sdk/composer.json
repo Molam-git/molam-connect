@@ -1,0 +1,65 @@
+{
+  "name": "molam/sdk-php",
+  "description": "Molam Server-side PHP SDK (Molam Form) - Production-ready SDK for Molam Connect & Molam Ma",
+  "type": "library",
+  "license": "MIT",
+  "keywords": ["molam", "payment", "payments", "sdk", "api", "fintech", "africa"],
+  "authors": [
+    {
+      "name": "Molam Labs",
+      "email": "dev@molam.io"
+    }
+  ],
+  "homepage": "https://molam.io",
+  "support": {
+    "docs": "https://docs.molam.io",
+    "issues": "https://github.com/molam/php-sdk/issues",
+    "source": "https://github.com/molam/php-sdk"
+  },
+  "require": {
+    "php": ">=8.1",
+    "psr/http-client": "^1.0",
+    "psr/http-message": "^1.0 || ^2.0",
+    "psr/log": "^1.1 || ^2.0 || ^3.0",
+    "guzzlehttp/guzzle": "^7.7",
+    "guzzlehttp/psr7": "^2.5",
+    "symfony/polyfill-mbstring": "^1.27",
+    "ext-openssl": "*",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "squizlabs/php_codesniffer": "^3.7",
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "phpstan/phpstan": "^1.10",
+    "mockery/mockery": "^1.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Molam\\SDK\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Molam\\SDK\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit -c phpunit.xml",
+    "test:coverage": "phpunit -c phpunit.xml --coverage-html coverage",
+    "cs": "php-cs-fixer fix --config=.php-cs-fixer.dist.php --verbose",
+    "cs:check": "php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff",
+    "phpstan": "phpstan analyse src tests --level=5",
+    "check": [
+      "@cs:check",
+      "@phpstan",
+      "@test"
+    ]
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

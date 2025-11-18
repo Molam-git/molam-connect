@@ -1,0 +1,236 @@
+# Alertmanager Configuration for Molam Routing Service
+# https://prometheus.io/docs/alerting/latest/configuration/
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Templates for notification formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert distribution
+route:
+  # Default receiver for all alerts
+  receiver: 'platform-team'
+
+  # Group alerts by these labels to reduce noise
+  group_by: ['alertname', 'component', 'severity']
+
+  # Wait before sending initial notification (allows grouping)
+  group_wait: 30s
+
+  # Wait before sending notifications about new alerts in an existing group
+  group_interval: 5m
+
+  # How long to wait before re-sending a notification
+  repeat_interval: 4h
+
+  # Child routes with specific routing logic
+  routes:
+    # Critical alerts - immediate escalation
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+      routes:
+        # Service down alerts - highest priority
+        - match:
+            alertname: RoutingServiceDown
+          receiver: 'pagerduty-critical'
+          group_wait: 0s
+          repeat_interval: 5m
+
+        # SLO violations - escalate to leadership
+        - match_re:
+            alertname: SLOViolation.*|ErrorBudgetBurnRateHigh
+          receiver: 'slo-violations'
+          repeat_interval: 30m
+
+        # SIRA failures - route to ML team
+        - match:
+            component: sira
+          receiver: 'ml-platform-team'
+          repeat_interval: 2h
+
+    # Warning alerts - notify but don't page
+    - match:
+        severity: warning
+      receiver: 'platform-team'
+      group_wait: 5m
+      repeat_interval: 12h
+
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'database-team'
+      repeat_interval: 4h
+
+    # Redis/Cache alerts
+    - match:
+        component: redis
+      receiver: 'infrastructure-team'
+      repeat_interval: 4h
+
+# Inhibition rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # Don't alert on high error rate if service is already down
+  - source_match:
+      alertname: 'RoutingServiceDown'
+    target_match_re:
+      alertname: 'RoutingHighErrorRate|RoutingLatencyP95High'
+    equal: ['instance']
+
+  # Don't alert on SIRA failures if SIRA is down
+  - source_match:
+      alertname: 'SiraDown'
+    target_match_re:
+      alertname: 'SiraCallFailures|SiraLatencyHigh'
+    equal: ['instance']
+
+  # Don't alert on cache issues if Redis is down
+  - source_match:
+      alertname: 'RedisDown'
+    target_match_re:
+      alertname: 'RedisCacheHitRateLow|RedisLatencyHigh'
+    equal: ['instance']
+
+  # Critical alerts suppress warnings for the same component
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'component']
+
+# Receiver definitions
+receivers:
+  # Default platform team notifications
+  - name: 'platform-team'
+    slack_configs:
+      - channel: '#platform-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+          *Dashboard:* {{ .CommonAnnotations.dashboard }}
+          *Severity:* {{ .GroupLabels.severity }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        send_resolved: true
+
+  # Critical alerts - Slack + Email
+  - name: 'critical-alerts'
+    slack_configs:
+      - channel: '#platform-critical'
+        title: ':rotating_light: CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+          *Dashboard:* {{ .CommonAnnotations.dashboard }}
+
+          *Firing Alerts:*
+          {{ range .Alerts }}
+          - {{ .Labels.alertname }} on {{ .Labels.instance }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+    email_configs:
+      - to: 'platform-oncall@molam.com'
+        from: 'alerts@molam.com'
+        smarthost: 'smtp.molam.com:587'
+        auth_username: '${SMTP_USERNAME}'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+
+  # PagerDuty for service down alerts
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          description: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook }}'
+          firing_alerts: '{{ .Alerts | len }}'
+
+  # SLO violations - escalate to leadership
+  - name: 'slo-violations'
+    slack_configs:
+      - channel: '#platform-slo'
+        title: ':chart_with_downwards_trend: SLO Violation: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+          *Dashboard:* {{ .CommonAnnotations.dashboard }}
+
+          *Action Required:* Review error budget and incident response plan
+        color: 'danger'
+        send_resolved: true
+    email_configs:
+      - to: 'platform-leadership@molam.com,sre-team@molam.com'
+        from: 'alerts@molam.com'
+        smarthost: 'smtp.molam.com:587'
+        auth_username: '${SMTP_USERNAME}'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: '[SLO VIOLATION] {{ .GroupLabels.alertname }}'
+
+  # ML Platform team for SIRA alerts
+  - name: 'ml-platform-team'
+    slack_configs:
+      - channel: '#ml-platform-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+          *Component:* SIRA AI Service
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        send_resolved: true
+
+  # Database team
+  - name: 'database-team'
+    slack_configs:
+      - channel: '#database-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        send_resolved: true
+
+  # Infrastructure team for Redis/Cache
+  - name: 'infrastructure-team'
+    slack_configs:
+      - channel: '#infrastructure-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        send_resolved: true
+
+# Time-based muting (optional)
+time_intervals:
+  - name: business-hours
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        location: 'Africa/Dakar'
+
+  - name: off-hours
+    time_intervals:
+      - times:
+          - start_time: '18:00'
+            end_time: '09:00'
+        location: 'Africa/Dakar'
+      - weekdays: ['saturday', 'sunday']
+        location: 'Africa/Dakar'

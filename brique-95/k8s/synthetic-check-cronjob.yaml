@@ -1,0 +1,187 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: routing-synthetic-check
+  namespace: molam-routing
+  labels:
+    app: routing-service
+    component: synthetic-check
+spec:
+  # Run every 5 minutes
+  schedule: "*/5 * * * *"
+
+  # Keep last 3 successful and 3 failed jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  # Don't run if previous job is still running
+  concurrencyPolicy: Forbid
+
+  jobTemplate:
+    metadata:
+      labels:
+        app: routing-service
+        component: synthetic-check
+    spec:
+      # Job timeout: 2 minutes
+      activeDeadlineSeconds: 120
+
+      # Only retry once
+      backoffLimit: 1
+
+      template:
+        metadata:
+          labels:
+            app: routing-service
+            component: synthetic-check
+        spec:
+          restartPolicy: Never
+
+          serviceAccountName: routing-synthetic-check
+
+          containers:
+            - name: health-check
+              image: curlimages/curl:latest
+              imagePullPolicy: IfNotPresent
+
+              command:
+                - /bin/sh
+                - /scripts/health-check.sh
+
+              env:
+                - name: ROUTING_SERVICE_URL
+                  value: "http://routing-service.molam-routing.svc.cluster.local:8082"
+
+                - name: JWT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: synthetic-check-secrets
+                      key: jwt-token
+
+                - name: MAX_LATENCY_MS
+                  value: "50"
+
+                - name: TEST_MERCHANT_ID
+                  value: "merchant_synthetic"
+
+                - name: TEST_USER_ID
+                  value: "user_synthetic"
+
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"
+
+          volumes:
+            - name: scripts
+              configMap:
+                name: synthetic-check-scripts
+                defaultMode: 0755
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synthetic-check-scripts
+  namespace: molam-routing
+data:
+  health-check.sh: |
+    #!/bin/sh
+    # Embedded synthetic health check script
+    # (Script content from health-check.sh would be pasted here)
+
+    set -euo pipefail
+
+    ROUTING_SERVICE_URL="${ROUTING_SERVICE_URL:-http://routing-service:8082}"
+    JWT_TOKEN="${JWT_TOKEN:-}"
+    MAX_LATENCY_MS="${MAX_LATENCY_MS:-50}"
+
+    echo "[INFO] Starting synthetic health check..."
+    echo "[INFO] Target: $ROUTING_SERVICE_URL"
+
+    # Test 1: Health endpoint
+    echo "[INFO] Test 1: Health endpoint..."
+    HEALTH_RESPONSE=$(wget -q -O - "$ROUTING_SERVICE_URL/health" || echo '{"status":"error"}')
+    echo "$HEALTH_RESPONSE" | grep -q '"status":"healthy"' || {
+        echo "[ERROR] Health check failed"
+        exit 1
+    }
+    echo "[INFO] ✓ Health check passed"
+
+    # Test 2: Routing decision
+    echo "[INFO] Test 2: Routing decision..."
+    IDEMPOTENCY_KEY="synthetic_$(date +%s%N)"
+    START_TIME=$(date +%s%3N)
+
+    DECISION_RESPONSE=$(wget -q -O - \
+        --header="Authorization: Bearer $JWT_TOKEN" \
+        --header="Idempotency-Key: $IDEMPOTENCY_KEY" \
+        --header="Content-Type: application/json" \
+        --post-data='{"merchant_id":"merchant_test","user_id":"user_synthetic","amount":5000,"currency":"XOF","country":"SN"}' \
+        "$ROUTING_SERVICE_URL/v1/routing/decide" || echo '{}')
+
+    END_TIME=$(date +%s%3N)
+    LATENCY_MS=$((END_TIME - START_TIME))
+
+    echo "$DECISION_RESPONSE" | grep -q '"route"' || {
+        echo "[ERROR] Routing decision failed"
+        exit 1
+    }
+
+    echo "[INFO] Latency: ${LATENCY_MS}ms"
+
+    if [ "$LATENCY_MS" -gt "$MAX_LATENCY_MS" ]; then
+        echo "[ERROR] Latency SLO violated: ${LATENCY_MS}ms > ${MAX_LATENCY_MS}ms"
+        exit 2
+    fi
+
+    echo "[INFO] ✓ Routing decision passed"
+    echo "[INFO] All checks passed successfully!"
+    exit 0
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: routing-synthetic-check
+  namespace: molam-routing
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: routing-synthetic-check
+  namespace: molam-routing
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: routing-synthetic-check
+  namespace: molam-routing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: routing-synthetic-check
+subjects:
+  - kind: ServiceAccount
+    name: routing-synthetic-check
+    namespace: molam-routing
+
+---
+# Secret for JWT token (create this manually)
+# kubectl create secret generic synthetic-check-secrets \
+#   --from-literal=jwt-token=YOUR_JWT_TOKEN \
+#   -n molam-routing

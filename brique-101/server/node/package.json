@@ -1,0 +1,30 @@
+{
+  "name": "molam-webhook-server",
+  "version": "1.0.0",
+  "description": "Production-ready Express.js webhook server for Molam payments",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "molam",
+    "webhook",
+    "payment",
+    "express",
+    "nodejs"
+  ],
+  "author": "Molam <support@molam.co>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

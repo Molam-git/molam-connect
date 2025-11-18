@@ -1,0 +1,80 @@
+{
+  "name": "@molam/brique-85-bank-connectors",
+  "version": "1.0.0",
+  "description": "Industrial bank integration layer with multi-rail support (REST, MT940, ISO20022, local rails)",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "dev": "ts-node src/server.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "db:migrate": "psql -U postgres -d molam_connect -f sql/014_bank_connectors.sql",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\""
+  },
+  "keywords": [
+    "banking",
+    "connectors",
+    "mt940",
+    "iso20022",
+    "sepa",
+    "swift",
+    "payments",
+    "molam"
+  ],
+  "author": "Molam Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "axios": "^1.6.2",
+    "xmlbuilder2": "^3.1.1",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "opossum": "^8.1.2",
+    "prom-client": "^15.1.0",
+    "uuid": "^9.0.1",
+    "date-fns": "^2.30.0",
+    "ssh2-sftp-client": "^9.1.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.5",
+    "@types/pg": "^8.10.9",
+    "@types/cors": "^2.8.17",
+    "@types/compression": "^1.7.5",
+    "@types/morgan": "^1.9.9",
+    "@types/jest": "^29.5.11",
+    "@types/uuid": "^9.0.7",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts"
+    ]
+  }
+}

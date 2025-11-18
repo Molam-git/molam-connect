@@ -1,0 +1,35 @@
+{
+  "name": "molam/module-form",
+  "description": "Molam Form Magento 2 payment integration - Accept Molam Wallet and Connect payments",
+  "type": "magento2-module",
+  "version": "1.0.0",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Molam Platform Team",
+      "email": "platform@molam.co"
+    }
+  ],
+  "require": {
+    "php": "^7.4 || ^8.0 || ^8.1",
+    "magento/framework": "^102.0 || ^103.0",
+    "magento/module-sales": "^102.0 || ^103.0",
+    "magento/module-checkout": "^100.0",
+    "magento/module-payment": "^100.0"
+  },
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Molam\\Form\\": ""
+    }
+  },
+  "keywords": [
+    "molam",
+    "payment",
+    "magento2",
+    "wallet",
+    "africa"
+  ]
+}

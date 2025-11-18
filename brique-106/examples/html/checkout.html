@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Form - HTML Example</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 32px;
+    }
+
+    .order-summary {
+      background: #f5f5f7;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .order-item:last-child {
+      margin-bottom: 0;
+      padding-top: 12px;
+      border-top: 1px solid #d2d2d7;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .payment-form {
+      margin-top: 24px;
+    }
+
+    #molam-form-container {
+      margin-bottom: 24px;
+    }
+
+    #submit-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #submit-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    #submit-button:active {
+      transform: translateY(0);
+    }
+
+    #submit-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.success {
+      background: rgba(52, 199, 89, 0.1);
+      color: #34c759;
+      border: 1px solid #34c759;
+    }
+
+    .message.error {
+      background: rgba(255, 59, 48, 0.1);
+      color: #ff3b30;
+      border: 1px solid #ff3b30;
+    }
+
+    .footer {
+      padding: 24px 32px;
+      background: #f5f5f7;
+      text-align: center;
+      font-size: 12px;
+      color: #86868b;
+    }
+
+    .secure-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .secure-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+  </style>
+
+  <!-- Load Molam Form SDK from CDN -->
+  <script src="https://js.molam.com/v1/molam-form.js"></script>
+  <link rel="stylesheet" href="https://js.molam.com/v1/molam-form.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Checkout</h1>
+      <p>Secure payment powered by Molam</p>
+    </div>
+
+    <div class="content">
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <div class="order-item">
+          <span>Premium Plan (Annual)</span>
+          <span>$99.00</span>
+        </div>
+        <div class="order-item">
+          <span>Tax</span>
+          <span>$9.90</span>
+        </div>
+        <div class="order-item">
+          <span>Total</span>
+          <span>$108.90</span>
+        </div>
+      </div>
+
+      <!-- Payment Form -->
+      <div class="payment-form">
+        <div id="molam-form-container"></div>
+        <button id="submit-button">Pay $108.90</button>
+        <div id="message" class="message"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="secure-badge">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+        </svg>
+        <span>Secure 256-bit SSL encrypted payment</span>
+      </div>
+      <p style="margin-top: 12px;">Powered by Molam · PCI DSS Compliant</p>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Molam Form
+    const molam = new MolamForm({
+      publishableKey: 'pk_test_your_publishable_key_here',
+      apiBase: 'https://staging-api.molam.com', // Use staging for testing
+      locale: 'en',
+      theme: 'minimal',
+    });
+
+    // Mount the form
+    molam.mount('#molam-form-container');
+
+    // Event handlers
+    const submitButton = document.getElementById('submit-button');
+    const messageEl = document.getElementById('message');
+
+    function showMessage(message, type) {
+      messageEl.textContent = message;
+      messageEl.className = `message ${type}`;
+      messageEl.style.display = 'block';
+    }
+
+    function hideMessage() {
+      messageEl.style.display = 'none';
+    }
+
+    // Listen for SDK events
+    molam.on('ready', () => {
+      console.log('Molam Form is ready');
+    });
+
+    molam.on('change', (event) => {
+      console.log('Field changed:', event);
+      hideMessage();
+    });
+
+    molam.on('tokenization:start', () => {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Processing...';
+      hideMessage();
+    });
+
+    molam.on('tokenization:success', (data) => {
+      console.log('Token created:', data.token);
+      // Token created, now confirm payment on your server
+      confirmPaymentOnServer(data.token.id);
+    });
+
+    molam.on('tokenization:error', (error) => {
+      console.error('Tokenization failed:', error);
+      showMessage(error.message || 'Failed to process card. Please try again.', 'error');
+      submitButton.disabled = false;
+      submitButton.textContent = 'Pay $108.90';
+    });
+
+    molam.on('payment:success', (data) => {
+      console.log('Payment successful:', data);
+      showMessage('Payment successful! Thank you for your purchase.', 'success');
+      submitButton.textContent = 'Payment Complete';
+    });
+
+    molam.on('payment:failed', (error) => {
+      console.error('Payment failed:', error);
+      showMessage(error.message || 'Payment failed. Please try again.', 'error');
+      submitButton.disabled = false;
+      submitButton.textContent = 'Pay $108.90';
+    });
+
+    molam.on('3ds:start', (data) => {
+      console.log('3DS authentication started:', data);
+      showMessage('Redirecting to 3D Secure authentication...', 'success');
+    });
+
+    molam.on('otp:requested', (data) => {
+      console.log('OTP requested:', data);
+      const otpCode = prompt('Please enter the OTP code sent to your phone:');
+      if (otpCode) {
+        molam.confirmOtp(otpCode)
+          .then(() => console.log('OTP confirmed'))
+          .catch((err) => console.error('OTP confirmation failed:', err));
+      }
+    });
+
+    // Handle form submission
+    submitButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      hideMessage();
+
+      try {
+        // Create payment token
+        const result = await molam.createToken();
+        console.log('Tokenization result:', result);
+
+        // SDK will emit 'tokenization:success' event automatically
+        // Then we'll call confirmPaymentOnServer()
+      } catch (error) {
+        console.error('Payment error:', error);
+        showMessage(error.message || 'Payment failed. Please try again.', 'error');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Pay $108.90';
+      }
+    });
+
+    // Confirm payment on your backend
+    async function confirmPaymentOnServer(tokenId) {
+      try {
+        // Call your backend API
+        const response = await fetch('https://your-backend.com/api/confirm-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: tokenId,
+            amount: 10890, // $108.90 in cents
+            currency: 'USD',
+            description: 'Premium Plan (Annual)',
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.paymentIntent) {
+          // Confirm the payment intent with Molam SDK
+          const result = await molam.confirmPayment(
+            data.paymentIntent.id,
+            data.paymentIntent.client_secret
+          );
+
+          // Payment successful or requires additional action (3DS, OTP)
+          if (result.status === 'succeeded') {
+            showMessage('Payment successful! Thank you for your purchase.', 'success');
+            submitButton.textContent = 'Payment Complete';
+          }
+        } else {
+          throw new Error(data.error || 'Payment confirmation failed');
+        }
+      } catch (error) {
+        console.error('Server error:', error);
+        showMessage('Server error. Please contact support.', 'error');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Pay $108.90';
+      }
+    }
+  </script>
+</body>
+</html>

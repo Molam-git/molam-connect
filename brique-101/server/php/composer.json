@@ -1,0 +1,27 @@
+{
+  "name": "molam/webhook-php",
+  "description": "PHP webhook handler for Molam payments",
+  "version": "1.0.0",
+  "type": "library",
+  "keywords": [
+    "molam",
+    "payment",
+    "webhook",
+    "php"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Molam",
+      "email": "support@molam.co"
+    }
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "Molam\\Webhook\\": "src/"
+    }
+  }
+}

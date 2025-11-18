@@ -1,0 +1,29 @@
+# Development dependencies for Molam SDK
+# Install with: pip install -r requirements-dev.txt
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Linting & Formatting
+flake8>=6.1.0
+black>=23.9.0
+mypy>=1.5.0
+
+# Type stubs
+types-requests>=2.31.0
+
+# Security
+safety>=2.3.0
+bandit>=1.7.0
+
+# Build
+build>=1.0.0
+twine>=4.0.0
+
+# Optional: Flask for webhook server example
+flask>=3.0.0
+
+# Optional: Database driver
+psycopg2-binary>=2.9.0

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Molam Hosted Card</title>
+
+  <!-- Security Headers (set via server) -->
+  <!-- Content-Security-Policy -->
+  <!-- X-Frame-Options: DENY (or SAMEORIGIN if needed) -->
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #ffffff;
+      color: #0b1220;
+      padding: 1rem;
+      font-size: 14px;
+    }
+
+    .card-form {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.375rem;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0a84ff;
+      box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
+    }
+
+    input::placeholder {
+      color: #9ca3af;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .error {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    .error.visible {
+      display: block;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 0.875rem;
+      background: #0a84ff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #0071e3;
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+
+    .submit-btn.loading .spinner {
+      display: block;
+    }
+
+    .submit-btn.loading .btn-text {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .lock-icon {
+      text-align: center;
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+
+    /* Card brand icon */
+    .card-brand {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
+    .field-wrapper {
+      position: relative;
+    }
+
+    /* Accessibility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body>
+  <form id="cardForm" class="card-form" novalidate>
+    <div class="lock-icon" aria-hidden="true">
+      🔒
+    </div>
+
+    <div class="field">
+      <label for="pan">Card number</label>
+      <div class="field-wrapper">
+        <input
+          type="text"
+          id="pan"
+          name="pan"
+          autocomplete="cc-number"
+          inputmode="numeric"
+          placeholder="4242 4242 4242 4242"
+          maxlength="19"
+          required
+          aria-required="true"
+          aria-describedby="pan-error"
+        />
+        <span class="card-brand" id="cardBrand"></span>
+      </div>
+      <div id="pan-error" class="error" role="alert"></div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="exp">Expiry date</label>
+        <input
+          type="text"
+          id="exp"
+          name="exp"
+          autocomplete="cc-exp"
+          inputmode="numeric"
+          placeholder="MM/YY"
+          maxlength="5"
+          required
+          aria-required="true"
+          aria-describedby="exp-error"
+        />
+        <div id="exp-error" class="error" role="alert"></div>
+      </div>
+
+      <div class="field">
+        <label for="cvc">CVC</label>
+        <input
+          type="text"
+          id="cvc"
+          name="cvc"
+          autocomplete="cc-csc"
+          inputmode="numeric"
+          placeholder="123"
+          maxlength="4"
+          required
+          aria-required="true"
+          aria-describedby="cvc-error"
+        />
+        <div id="cvc-error" class="error" role="alert"></div>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">
+      <span class="btn-text">Tokenize Card</span>
+      <div class="spinner"></div>
+    </button>
+
+    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" id="status"></div>
+  </form>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const form = document.getElementById('cardForm');
+      const panInput = document.getElementById('pan');
+      const expInput = document.getElementById('exp');
+      const cvcInput = document.getElementById('cvc');
+      const submitBtn = document.getElementById('submitBtn');
+      const cardBrand = document.getElementById('cardBrand');
+      const statusEl = document.getElementById('status');
+
+      // Get client token from URL parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientToken = urlParams.get('token');
+
+      if (!clientToken) {
+        showError('Missing client token');
+        submitBtn.disabled = true;
+        return;
+      }
+
+      // Card number formatting
+      panInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+        e.target.value = formatted;
+
+        // Detect card brand
+        const brand = detectCardBrand(value);
+        cardBrand.textContent = brand;
+
+        // Clear error
+        hideError('pan');
+      });
+
+      // Expiry formatting
+      expInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+          value = value.slice(0, 2) + '/' + value.slice(2, 4);
+        }
+        e.target.value = value;
+        hideError('exp');
+      });
+
+      // CVC formatting
+      cvcInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '');
+        hideError('cvc');
+      });
+
+      // Form submission
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Clear errors
+        hideError('pan');
+        hideError('exp');
+        hideError('cvc');
+
+        // Validate
+        const pan = panInput.value.replace(/\s/g, '');
+        const exp = expInput.value;
+        const cvc = cvcInput.value;
+
+        let hasErrors = false;
+
+        if (!validatePAN(pan)) {
+          showError('pan', 'Invalid card number');
+          hasErrors = true;
+        }
+
+        if (!validateExpiry(exp)) {
+          showError('exp', 'Invalid expiry date');
+          hasErrors = true;
+        }
+
+        if (!validateCVC(cvc)) {
+          showError('cvc', 'Invalid CVC');
+          hasErrors = true;
+        }
+
+        if (hasErrors) return;
+
+        // Disable form
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
+        updateStatus('Tokenizing card securely...');
+
+        try {
+          // Parse expiry
+          const [expMonth, expYear] = exp.split('/');
+          const fullYear = '20' + expYear;
+
+          // Send to tokenization endpoint (same origin)
+          const response = await fetch('/tokenize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              client_token: clientToken,
+              pan,
+              exp_month: parseInt(expMonth),
+              exp_year: parseInt(fullYear),
+              cvc,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Tokenization failed');
+          }
+
+          const data = await response.json();
+
+          // Post message to parent window with tokenized data
+          window.parent.postMessage({
+            type: 'tokenized_card',
+            provider_ref: data.provider_ref,
+            last4: data.last4,
+            brand: data.brand,
+            exp_month: data.exp_month,
+            exp_year: data.exp_year,
+            client_token: clientToken,
+          }, '*');
+
+          updateStatus('Card tokenized successfully');
+
+          // Clear form for security
+          form.reset();
+          cardBrand.textContent = '';
+
+        } catch (error) {
+          console.error('Tokenization error:', error);
+          showError('pan', error.message || 'Failed to tokenize card');
+          updateStatus('Tokenization failed: ' + error.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('loading');
+        }
+      });
+
+      // Validation functions
+      function validatePAN(pan) {
+        if (pan.length < 13 || pan.length > 19) return false;
+        return validateLuhn(pan);
+      }
+
+      function validateLuhn(pan) {
+        let sum = 0;
+        let isEven = false;
+
+        for (let i = pan.length - 1; i >= 0; i--) {
+          let digit = parseInt(pan[i], 10);
+
+          if (isEven) {
+            digit *= 2;
+            if (digit > 9) digit -= 9;
+          }
+
+          sum += digit;
+          isEven = !isEven;
+        }
+
+        return sum % 10 === 0;
+      }
+
+      function validateExpiry(exp) {
+        const match = exp.match(/^(\d{2})\/(\d{2})$/);
+        if (!match) return false;
+
+        const month = parseInt(match[1]);
+        const year = parseInt('20' + match[2]);
+
+        if (month < 1 || month > 12) return false;
+
+        const now = new Date();
+        const expiry = new Date(year, month - 1);
+
+        return expiry > now;
+      }
+
+      function validateCVC(cvc) {
+        return cvc.length >= 3 && cvc.length <= 4;
+      }
+
+      function detectCardBrand(pan) {
+        if (/^4/.test(pan)) return 'visa';
+        if (/^5[1-5]/.test(pan)) return 'mastercard';
+        if (/^3[47]/.test(pan)) return 'amex';
+        if (/^6011|65|64[4-9]/.test(pan)) return 'discover';
+        if (/^35/.test(pan)) return 'jcb';
+        return '';
+      }
+
+      function showError(fieldId, message) {
+        const errorEl = document.getElementById(fieldId + '-error');
+        errorEl.textContent = message;
+        errorEl.classList.add('visible');
+        document.getElementById(fieldId).setAttribute('aria-invalid', 'true');
+      }
+
+      function hideError(fieldId) {
+        const errorEl = document.getElementById(fieldId + '-error');
+        errorEl.textContent = '';
+        errorEl.classList.remove('visible');
+        document.getElementById(fieldId).setAttribute('aria-invalid', 'false');
+      }
+
+      function updateStatus(message) {
+        statusEl.textContent = message;
+      }
+    })();
+  </script>
+</body>
+</html>

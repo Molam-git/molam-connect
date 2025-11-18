@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Connect - Test Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+          <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <h1>Molam Connect</h1>
+      </div>
+      <div class="header-info">
+        <span class="status" id="serverStatus">
+          <span class="status-dot"></span>
+          Checking...
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container main-content">
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('payment')">💳 Payment Intent</button>
+      <button class="tab" onclick="showTab('auth')">🔒 Auth Decision</button>
+      <button class="tab" onclick="showTab('otp')">📱 OTP</button>
+      <button class="tab" onclick="showTab('customer')">👤 Customer</button>
+      <button class="tab" onclick="showTab('logs')">📊 Logs</button>
+      <a href="/checkout.html" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">🛒 Checkout Demo</a>
+    </div>
+
+    <!-- Payment Intent Tab -->
+    <div id="tab-payment" class="tab-content active">
+      <h2>Create Payment Intent</h2>
+      <p class="description">Test payment intent creation and confirmation flow</p>
+
+      <div class="form-group">
+        <label for="pi_amount">Amount (in cents)</label>
+        <input type="number" id="pi_amount" placeholder="10000" value="10000">
+      </div>
+
+      <div class="form-group">
+        <label for="pi_currency">Currency</label>
+        <select id="pi_currency">
+          <option value="USD">USD - US Dollar</option>
+          <option value="XOF" selected>XOF - West African CFA</option>
+          <option value="EUR">EUR - Euro</option>
+          <option value="GBP">GBP - British Pound</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="pi_description">Description</label>
+        <input type="text" id="pi_description" placeholder="Payment for services">
+      </div>
+
+      <button class="btn btn-primary" onclick="createPaymentIntent()">Create Payment Intent</button>
+
+      <div id="pi_result" class="result-box" style="display: none;"></div>
+
+      <!-- Confirm Payment Section (shown after creation) -->
+      <div id="confirm_section" style="display: none; margin-top: 32px;">
+        <h3>Confirm Payment</h3>
+        <div class="form-group">
+          <label for="pi_id_confirm">Payment Intent ID</label>
+          <input type="text" id="pi_id_confirm" readonly>
+        </div>
+        <div class="form-group">
+          <label for="pi_secret_confirm">Client Secret</label>
+          <input type="text" id="pi_secret_confirm" readonly>
+        </div>
+        <div class="form-group">
+          <label for="pi_payment_method">Payment Method</label>
+          <select id="pi_payment_method">
+            <option value="card">Card</option>
+            <option value="mobile_money">Mobile Money</option>
+            <option value="bank_transfer">Bank Transfer</option>
+          </select>
+        </div>
+        <button class="btn btn-success" onclick="confirmPaymentIntent()">Confirm Payment</button>
+      </div>
+    </div>
+
+    <!-- Auth Decision Tab -->
+    <div id="tab-auth" class="tab-content">
+      <h2>Make Auth Decision</h2>
+      <p class="description">Test SIRA-powered authentication method selection</p>
+
+      <div class="form-group">
+        <label for="auth_amount">Amount (in cents)</label>
+        <input type="number" id="auth_amount" placeholder="10000" value="50000">
+      </div>
+
+      <div class="form-group">
+        <label for="auth_currency">Currency</label>
+        <select id="auth_currency">
+          <option value="XOF" selected>XOF</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="auth_country">Country</label>
+        <select id="auth_country">
+          <option value="SN" selected>Senegal (SN)</option>
+          <option value="CI">Côte d'Ivoire (CI)</option>
+          <option value="US">United States (US)</option>
+          <option value="FR">France (FR)</option>
+          <option value="NG">Nigeria (NG)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="auth_bin">Card BIN (first 6 digits)</label>
+        <input type="text" id="auth_bin" placeholder="424242" value="424242" maxlength="8">
+      </div>
+
+      <div class="form-group">
+        <label for="auth_device_fp">Device Fingerprint (optional)</label>
+        <input type="text" id="auth_device_fp" placeholder="fp_abc123">
+      </div>
+
+      <button class="btn btn-primary" onclick="makeAuthDecision()">Make Decision</button>
+
+      <div id="auth_result" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- OTP Tab -->
+    <div id="tab-otp" class="tab-content">
+      <h2>OTP Flow</h2>
+      <p class="description">Test OTP generation and verification</p>
+
+      <!-- Create OTP -->
+      <div class="section">
+        <h3>1. Create OTP</h3>
+        <div class="form-group">
+          <label for="otp_phone">Phone Number (E.164 format)</label>
+          <input type="text" id="otp_phone" placeholder="+221771234567" value="+221771234567">
+        </div>
+
+        <div class="form-group">
+          <label for="otp_method">Method</label>
+          <select id="otp_method">
+            <option value="sms">SMS</option>
+            <option value="voice">Voice</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="createOTP()">Send OTP</button>
+
+        <div id="otp_create_result" class="result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Verify OTP -->
+      <div class="section" style="margin-top: 32px;">
+        <h3>2. Verify OTP</h3>
+        <div class="form-group">
+          <label for="otp_id_verify">OTP ID</label>
+          <input type="text" id="otp_id_verify" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="otp_code">OTP Code (check console for dev code)</label>
+          <input type="text" id="otp_code" placeholder="123456" maxlength="6">
+        </div>
+
+        <button class="btn btn-success" onclick="verifyOTP()">Verify OTP</button>
+
+        <div id="otp_verify_result" class="result-box" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Customer Tab -->
+    <div id="tab-customer" class="tab-content">
+      <h2>Create Customer</h2>
+      <p class="description">Test customer creation and management</p>
+
+      <div class="form-group">
+        <label for="cust_email">Email</label>
+        <input type="email" id="cust_email" placeholder="customer@example.com" required>
+      </div>
+
+      <div class="form-group">
+        <label for="cust_name">Name</label>
+        <input type="text" id="cust_name" placeholder="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label for="cust_phone">Phone</label>
+        <input type="text" id="cust_phone" placeholder="+221771234567">
+      </div>
+
+      <div class="form-group">
+        <label for="cust_country">Country</label>
+        <select id="cust_country">
+          <option value="SN">Senegal</option>
+          <option value="CI">Côte d'Ivoire</option>
+          <option value="US">United States</option>
+          <option value="FR">France</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" onclick="createCustomer()">Create Customer</button>
+
+      <div id="cust_result" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- Logs Tab -->
+    <div id="tab-logs" class="tab-content">
+      <h2>Activity Logs</h2>
+      <p class="description">Real-time API activity</p>
+
+      <div class="logs-container" id="logs">
+        <div class="log-entry">
+          <span class="log-time">System</span>
+          <span class="log-message">Dashboard loaded. Ready to test APIs.</span>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Molam Connect. All rights reserved.</p>
+      <p class="version">v0.1.0 | API: <a href="/health" target="_blank">Health Check</a></p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

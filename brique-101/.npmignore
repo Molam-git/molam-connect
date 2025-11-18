@@ -1,0 +1,44 @@
+# Development files
+server/
+examples/
+tests/
+*.test.js
+*.spec.js
+
+# Documentation (except README)
+BRIQUE_101_SUMMARY.md
+docs/
+*.md
+!README.md
+
+# Build artifacts
+node_modules/
+dist/
+build/
+coverage/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.travis.yml
+.circleci/
+
+# Misc
+.env
+.env.*
+*.log
