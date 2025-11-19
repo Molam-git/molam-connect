@@ -1,0 +1,19 @@
+# Brique 112: Training Pipeline Requirements
+
+# Core ML
+lightgbm==4.1.0
+scikit-learn==1.3.2
+numpy==1.24.3
+pandas==2.0.3
+
+# Explainability
+shap==0.43.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# Cloud storage
+boto3==1.29.7
+
+# Utilities
+python-dotenv==1.0.0

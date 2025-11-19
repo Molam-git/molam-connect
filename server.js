@@ -517,6 +517,29 @@ const createAutoHealingRouter = require('./brique-110bis/src/routes/autohealing'
 autoHealingService.setPool(pool);
 interopService.setPool(pool);
 
+// ============================================================================
+// Brique 111-2: AI Config Advisor (SIRA)
+// ============================================================================
+
+const recommendationExecutor = require('./brique-111-2/src/services/recommendationExecutor');
+const createRecommendationsRouter = require('./brique-111-2/src/routes/ai-recommendations');
+
+// Initialize pool for recommendation executor
+recommendationExecutor.setPool(pool);
+
+// ============================================================================
+// Brique 112: SIRA Training & Data Pipeline
+// ============================================================================
+
+const dataIngestionWorker = require('./brique-112/src/workers/dataIngestion');
+const canaryService = require('./brique-112/src/services/canaryService');
+const createModelRegistryRouter = require('./brique-112/src/routes/model-registry');
+const createCanaryRouter = require('./brique-112/src/routes/canary');
+
+// Initialize pool for Brique 112 services
+dataIngestionWorker.setPool(pool);
+canaryService.setPool(pool);
+
 const qrService = new QRService(pool, {
   hmacSecret: process.env.QR_HMAC_SECRET || 'default-secret-change-me',
   baseUrl: process.env.PAY_URL || 'http://localhost:3000',
@@ -749,6 +772,102 @@ app.use('/api/v1/plugins', autoHealingRouter);
 
 // Serve Auto-Healing Console
 app.use('/ops/autohealing', express.static(path.join(__dirname, 'brique-110bis/src/components')));
+
+// ============================================================================
+// Brique 111-2: AI Config Advisor API
+// ============================================================================
+
+// Mount AI Recommendations routes
+const recommendationsRouter = createRecommendationsRouter(pool, recommendationExecutor);
+app.use('/api/ai-recommendations', recommendationsRouter);
+
+// Serve AI Advisor Panel
+app.use('/ops/ai-advisor', express.static(path.join(__dirname, 'brique-111-2/src/components')));
+
+// ============================================================================
+// Brique 112: SIRA Training & Data Pipeline API
+// ============================================================================
+
+// Mount Model Registry routes
+const modelRegistryRouter = createModelRegistryRouter(pool);
+app.use('/api/sira/models', modelRegistryRouter);
+
+// Mount Canary routes
+const canaryRouter = createCanaryRouter(pool, canaryService);
+app.use('/api/sira/canary', canaryRouter);
+
+// Data Ingestion endpoints
+app.post('/api/sira/ingest', async (req, res) => {
+  try {
+    const { event_id, source_module, features, country, currency } = req.body;
+
+    if (!event_id || !source_module || !features) {
+      return res.status(400).json({ error: 'missing_required_fields' });
+    }
+
+    const result = await dataIngestionWorker.ingestEvent(
+      event_id,
+      source_module,
+      features,
+      country,
+      currency
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('❌ Data ingestion failed:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+app.post('/api/sira/label', async (req, res) => {
+  try {
+    const { event_id, label, labelled_by, confidence, review_notes } = req.body;
+
+    if (!event_id || !label || !labelled_by) {
+      return res.status(400).json({ error: 'missing_required_fields' });
+    }
+
+    const result = await dataIngestionWorker.addLabel(
+      event_id,
+      label,
+      labelled_by,
+      confidence,
+      review_notes
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('❌ Label creation failed:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+app.get('/api/sira/dataset/summary', async (req, res) => {
+  try {
+    const summary = await dataIngestionWorker.getDatasetSummary();
+    res.json(summary);
+  } catch (error) {
+    console.error('❌ Dataset summary failed:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+app.get('/api/sira/dataset/labels', async (req, res) => {
+  try {
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date and end_date required' });
+    }
+
+    const distribution = await dataIngestionWorker.getLabelDistribution(start_date, end_date);
+    res.json(distribution);
+  } catch (error) {
+    console.error('❌ Label distribution failed:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
 
 // Tokenization endpoint (served from tokens.molam.com in production)
 app.post('/api/v1/tokens', async (req, res) => {
@@ -988,6 +1107,33 @@ const server = app.listen(PORT, HOST, () => {
   console.log('  GET  /api/v1/plugins/interop/stats');
   console.log('  POST /api/v1/plugins/interop/mappings');
   console.log('\n  Auto-Healing Console: http://localhost:3000/ops/autohealing');
+  console.log('\n  Brique 111-2: AI Config Advisor (SIRA)');
+  console.log('  POST /api/ai-recommendations');
+  console.log('  GET  /api/ai-recommendations');
+  console.log('  GET  /api/ai-recommendations/:id');
+  console.log('  POST /api/ai-recommendations/:id/approve');
+  console.log('  POST /api/ai-recommendations/:id/apply');
+  console.log('  POST /api/ai-recommendations/:id/rollback');
+  console.log('  POST /api/ai-recommendations/:id/reject');
+  console.log('  GET  /api/ai-recommendations/:id/evidence');
+  console.log('  GET  /api/ai-recommendations/:id/audit');
+  console.log('  GET  /api/ai-recommendations/stats/metrics');
+  console.log('\n  AI Advisor Panel: http://localhost:3000/ops/ai-advisor');
+  console.log('\n  Brique 112: SIRA Training & Data Pipeline');
+  console.log('  POST /api/sira/ingest');
+  console.log('  POST /api/sira/label');
+  console.log('  GET  /api/sira/dataset/summary');
+  console.log('  GET  /api/sira/dataset/labels');
+  console.log('  GET  /api/sira/models');
+  console.log('  POST /api/sira/models');
+  console.log('  GET  /api/sira/models/:id');
+  console.log('  POST /api/sira/models/:id/promote');
+  console.log('  POST /api/sira/models/:id/metrics');
+  console.log('  GET  /api/sira/models/:id/metrics');
+  console.log('  GET  /api/sira/canary/:product');
+  console.log('  POST /api/sira/canary/:product');
+  console.log('  POST /api/sira/canary/:product/stop');
+  console.log('  GET  /api/sira/canary/:product/health');
   console.log('='.repeat(60) + '\n');
 });
 

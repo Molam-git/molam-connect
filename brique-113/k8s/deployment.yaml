@@ -1,0 +1,191 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sira-inference
+  namespace: molam
+  labels:
+    app: sira-inference
+    version: v1
+    component: ml-inference
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: sira-inference
+  template:
+    metadata:
+      labels:
+        app: sira-inference
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: sira-inference
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      initContainers:
+      # Optional: Pre-download models
+      - name: model-fetcher
+        image: amazon/aws-cli:latest
+        command:
+          - sh
+          - -c
+          - |
+            echo "Pre-fetching models from S3..."
+            # Models will be downloaded by the main container on startup
+            # This init container can be used for critical models
+            exit 0
+        volumeMounts:
+          - name: models
+            mountPath: /models
+
+      containers:
+      - name: sira-inference
+        image: registry.molam/sira-inference:v1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+
+        env:
+          - name: NODE_ENV
+            value: "production"
+          - name: PORT
+            value: "8080"
+          - name: LOG_LEVEL
+            value: "info"
+
+          # Database
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: molam-secrets
+                key: database-url
+
+          # JWT Secret
+          - name: JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: molam-secrets
+                key: jwt-secret
+
+          # Internal Service Token
+          - name: INTERNAL_SERVICE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: molam-secrets
+                key: internal-service-token
+
+          # AWS Credentials
+          - name: AWS_REGION
+            value: "us-east-1"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: access-key-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: secret-access-key
+
+          # Model Storage
+          - name: MODEL_BUCKET
+            value: "molam-models"
+          - name: MODELS_DIR
+            value: "/models"
+
+          # Cache Configuration
+          - name: CACHE_MAX_ITEMS
+            value: "5000"
+          - name: CACHE_TTL_MS
+            value: "300000"
+
+          # Model Check Interval
+          - name: MODEL_CHECK_INTERVAL_MS
+            value: "30000"
+
+          # Service Metadata
+          - name: POD_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: SERVICE_VERSION
+            value: "v1.0.0"
+
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 2Gi
+
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        volumeMounts:
+          - name: models
+            mountPath: /models
+
+      volumes:
+        - name: models
+          emptyDir:
+            sizeLimit: 5Gi
+
+      # Pod Disruption Budget (defined separately)
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #       - weight: 100
+      #         podAffinityTerm:
+      #           labelSelector:
+      #             matchExpressions:
+      #               - key: app
+      #                 operator: In
+      #                 values:
+      #                   - sira-inference
+      #           topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sira-inference-pdb
+  namespace: molam
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sira-inference

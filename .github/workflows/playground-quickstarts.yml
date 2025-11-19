@@ -1,0 +1,34 @@
+name: Playground Quickstarts Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-quickstarts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install playground service deps
+        run: |
+          cd brique-117bis/services/playground
+          npm ci
+      - name: Run playground unit tests
+        run: |
+          cd brique-117bis/services/playground
+          npm test -- --runInBand
+      - name: Validate sample app
+        run: |
+          cd brique-117/sample-app-node
+          npm install
+          node server.js &
+          sleep 3
+          curl -X POST http://localhost:3000/create-payment \
+            -H "Content-Type: application/json" \
+            -d '{"amount":5000,"currency":"XOF"}' || true
+

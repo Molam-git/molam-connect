@@ -189,6 +189,33 @@ $sqlFiles = @(
 
     # Brique 110ter - AI Plugin Forge
     "brique-110ter/migrations/001_plugin_forge.sql"
+
+    # Brique 111-2 - AI Config Advisor (SIRA)
+    "brique-111-2/migrations/001_ai_config_advisor.sql"
+
+    # Brique 112 - SIRA Training & Data Pipeline
+    "brique-112/migrations/001_sira_training_pipeline.sql"
+
+    # Brique 113 - SIRA Inference Service & Low-Latency Router
+    "brique-113/migrations/001_sira_inference.sql"
+
+    # Brique 115bis - Rollback Automatique & Safe Upgrade
+    "brique-115bis/migrations/001_rollback_automatic.sql"
+
+    # Brique 115ter - Canary Release & Progressive Rollout (extension de 115bis)
+    "brique-115bis/migrations/002_progressive_rollout.sql"
+
+    # Brique 116 - Charge Routing Logs (Debugging & SIRA Learning)
+    "brique-116/migrations/001_charge_routing_logs.sql"
+
+    # Brique 116bis - Smart Auto-Routing by Sira (extension de 116)
+    "brique-116/migrations/002_smart_auto_routing.sql"
+
+    # Brique 116ter - Predictive Routing Simulator (extension de 116bis)
+    "brique-116/migrations/003_predictive_routing_simulator.sql"
+
+    # Brique 116quater - AI Adaptive Routing Over Time (extension de 116ter)
+    "brique-116/migrations/004_adaptive_routing_over_time.sql"
 )
 
 Write-Host "✅ Trouvé $($sqlFiles.Count) fichiers SQL" -ForegroundColor Green
