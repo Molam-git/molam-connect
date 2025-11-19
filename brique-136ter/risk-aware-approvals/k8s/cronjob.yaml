@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: approval-worker
+  labels:
+    app: approval-worker
+spec:
+  schedule: "*/2 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: approval-worker
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: worker
+              image: molam/risk-aware-approvals:latest
+              command: ["node", "dist/workers/approvalWorker.js"]
+              env:
+                - name: NODE_ENV
+                  value: "production"
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: database_url
+                - name: EVENT_BUS_URL
+                  value: "http://event-bus:3000"
+                - name: SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: service-tokens
+                      key: internal_service_token
+                - name: WORKER_INTERVAL_MS
+                  value: "60000"
+                - name: LOG_LEVEL
+                  value: "info"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi

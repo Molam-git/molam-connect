@@ -1,0 +1,109 @@
+# ============================================================================
+# Prometheus Alert Rules - Settlement SLA Monitoring
+# ============================================================================
+
+groups:
+  - name: molam-settlement-sla
+    interval: 30s
+    rules:
+      # Match Rate Degradation
+      - alert: SettlementMatchRateLow
+        expr: |
+          (1 - avg_over_time(molam_settlement_match_rate[1h])) > 0.005
+        for: 15m
+        labels:
+          severity: warning
+          team: treasury
+        annotations:
+          summary: "Settlement match rate dropped below 99.5%"
+          description: "Match rate: {{ $value | humanizePercentage }} for bank={{ $labels.bank_profile }} rail={{ $labels.rail }}"
+          runbook_url: "https://docs.molam.com/runbooks/settlement-match-rate"
+
+      # Latency P95 Exceeded
+      - alert: SettlementLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(molam_settlement_latency_seconds_bucket[15m])) by (le, bank_profile, rail)) > 3600
+        for: 10m
+        labels:
+          severity: critical
+          team: treasury
+        annotations:
+          summary: "Settlement P95 latency exceeded 1 hour"
+          description: "P95 latency: {{ $value | humanizeDuration }} for bank={{ $labels.bank_profile }} rail={{ $labels.rail }}"
+          runbook_url: "https://docs.molam.com/runbooks/settlement-latency"
+
+      # Success Rate Drop
+      - alert: SettlementSuccessRateDrop
+        expr: |
+          (1 - avg_over_time(molam_settlement_success_rate[30m])) > 0.001
+        for: 20m
+        labels:
+          severity: critical
+          team: treasury
+        annotations:
+          summary: "Settlement success rate below 99.9%"
+          description: "Success rate: {{ $value | humanizePercentage }} for bank={{ $labels.bank_profile }}"
+          runbook_url: "https://docs.molam.com/runbooks/settlement-failures"
+
+      # High Failure Count
+      - alert: SettlementFailureSpike
+        expr: |
+          rate(molam_settlement_fail_count_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: treasury
+        annotations:
+          summary: "Settlement failure rate spiking"
+          description: "Failure rate: {{ $value }} failures/sec for bank={{ $labels.bank_profile }}"
+
+      # Pending Queue Buildup
+      - alert: SettlementPendingHigh
+        expr: |
+          molam_settlement_pending_count > 100
+        for: 30m
+        labels:
+          severity: warning
+          team: treasury
+        annotations:
+          summary: "Settlement pending queue growing"
+          description: "Pending instructions: {{ $value }} for bank={{ $labels.bank_profile }}"
+          runbook_url: "https://docs.molam.com/runbooks/settlement-backlog"
+
+      # Reconciliation Unmatched
+      - alert: ReconciliationUnmatchedHigh
+        expr: |
+          sum(rate(molam_reconciliation_unmatched_count[1h])) by (bank_profile) > 10
+        for: 30m
+        labels:
+          severity: warning
+          team: treasury
+        annotations:
+          summary: "High unmatched reconciliation lines"
+          description: "Unmatched rate: {{ $value }} lines/hour for bank={{ $labels.bank_profile }}"
+          runbook_url: "https://docs.molam.com/runbooks/reconciliation"
+
+      # Circuit Breaker Open
+      - alert: BankCircuitBreakerOpen
+        expr: |
+          molam_bank_circuit_breaker_state{state="open"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          team: treasury
+        annotations:
+          summary: "Bank circuit breaker opened"
+          description: "Circuit breaker OPEN for bank={{ $labels.bank_profile }} - automatic failover triggered"
+          runbook_url: "https://docs.molam.com/runbooks/circuit-breaker"
+
+      # SLA Evaluator Health
+      - alert: SlaEvaluatorDown
+        expr: |
+          up{job="sla-evaluator"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "SLA evaluator is down"
+          description: "SLA monitoring service is not responding"

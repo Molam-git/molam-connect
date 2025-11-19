@@ -1,0 +1,163 @@
+# ============================================================================
+# Kubernetes Deployment for Approvals Service
+# ============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: approvals-service
+  namespace: molam-pay
+  labels:
+    app: approvals
+    component: backend
+    tier: service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: approvals
+  template:
+    metadata:
+      labels:
+        app: approvals
+        component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8085"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: approvals
+      containers:
+      - name: approvals
+        image: registry.molam.io/approvals-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8085
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8085"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: approvals-secrets
+              key: DATABASE_URL
+        - name: MOLAM_ID_JWT_PUBLIC
+          valueFrom:
+            secretKeyRef:
+              name: approvals-secrets
+              key: MOLAM_ID_JWT_PUBLIC
+        - name: EVENT_BUS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: approvals-config
+              key: EVENT_BUS_URL
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: approvals-config
+              key: CORS_ORIGIN
+        - name: RATE_LIMIT_MAX
+          value: "100"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8085
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - approvals
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: approvals-service
+  namespace: molam-pay
+  labels:
+    app: approvals
+spec:
+  type: ClusterIP
+  selector:
+    app: approvals
+  ports:
+  - port: 80
+    targetPort: 8085
+    protocol: TCP
+    name: http
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: approvals
+  namespace: molam-pay
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: approvals-expiry
+  namespace: molam-pay
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: approvals
+          containers:
+          - name: expiry-worker
+            image: registry.molam.io/approvals-service:latest
+            command: ["node", "dist/workers/expiry.js"]
+            envFrom:
+            - secretRef:
+                name: approvals-secrets
+            - configMapRef:
+                name: approvals-config
+          restartPolicy: OnFailure

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risk-aware-approvals
+  labels:
+    app: risk-aware-approvals
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: risk-aware-approvals
+  template:
+    metadata:
+      labels:
+        app: risk-aware-approvals
+        version: v1
+    spec:
+      containers:
+        - name: risk-aware-approvals
+          image: molam/risk-aware-approvals:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: database_url
+            - name: TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: approval-secrets
+                  key: token_secret
+            - name: SIRA_URL
+              value: "http://sira-service:3000"
+            - name: SIRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sira-credentials
+                  key: api_key
+            - name: SIRA_TIMEOUT
+              value: "5000"
+            - name: EVENT_BUS_URL
+              value: "http://event-bus:3000"
+            - name: MULTICHANNEL_SERVICE_URL
+              value: "http://multichannel-service:3000"
+            - name: SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: service-tokens
+                  key: internal_service_token
+            - name: LOG_LEVEL
+              value: "info"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-aware-approvals
+  labels:
+    app: risk-aware-approvals
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: risk-aware-approvals
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-aware-approvals-metrics
+  labels:
+    app: risk-aware-approvals
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: metrics
+  selector:
+    app: risk-aware-approvals
