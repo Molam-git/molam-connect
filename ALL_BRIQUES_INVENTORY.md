@@ -10,6 +10,8 @@
 
 Ce document liste TOUTES les briques disponibles dans le projet Molam Connect.
 
+> 🔔 **Nouveau** : Brique 138 (Agent Dashboard) ajoutée — voir section dédiée plus bas.
+
 ### Statistiques Globales
 
 - **Total Briques**: 47
@@ -392,6 +394,12 @@ rm test-results-*.json
 ### API & Intégration
 - `brique-78/API_GUIDE.md` - API Reference (Approval)
 - `brique-78/INTEGRATION_EXAMPLES.md` - Exemples d'intégration
+
+### Nouvelle Brique 138 — Agent Dashboard
+- `brique-138/README.md` - Architecture, API, flux SIRA
+- `brique-138/database/schema.sql` - Schéma agents/ventes/float/commissions
+- `brique-138/ui/AgentDashboard.tsx` - Composant React (Tailwind + Recharts)
+- `brique-138/docs/security.md` - RBAC, SIRA, synchronisation Wallet/Connect/Treasury
 
 ---
 

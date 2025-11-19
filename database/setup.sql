@@ -188,6 +188,136 @@ CREATE TABLE IF NOT EXISTS device_trust (
 );
 
 -- ============================================================================
+-- TREASURY & BANK PROFILES (Briques 121/127/138)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS bank_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bank_name TEXT NOT NULL,
+  bank_code TEXT UNIQUE,
+  country TEXT,
+  currency TEXT,
+  supported_currencies TEXT[],
+  status TEXT NOT NULL DEFAULT 'active',
+  flat_fee NUMERIC(18, 4) DEFAULT 0,
+  percent_fee NUMERIC(8, 6) DEFAULT 0,
+  avg_delay_sec INTEGER DEFAULT 3600,
+  sla_target INTEGER DEFAULT 3600,
+  risk_score NUMERIC(4, 3) DEFAULT 0.1,
+  settlement_account_id UUID,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS treasury_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bank_profile_id UUID REFERENCES bank_profiles(id) ON DELETE SET NULL,
+  currency TEXT NOT NULL,
+  account_type TEXT NOT NULL DEFAULT 'operational',
+  ledger_account_code TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS bank_health_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bank_profile_id UUID NOT NULL REFERENCES bank_profiles(id) ON DELETE CASCADE,
+  latency_ms INTEGER,
+  success_rate NUMERIC(5, 4),
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  anomalies JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_health_bank ON bank_health_logs(bank_profile_id);
+CREATE INDEX IF NOT EXISTS idx_bank_health_checked_at ON bank_health_logs(checked_at DESC);
+
+CREATE TABLE IF NOT EXISTS bank_health_predictions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bank_id UUID REFERENCES bank_profiles(id) ON DELETE CASCADE,
+  predicted_risk_score NUMERIC CHECK (predicted_risk_score >= 0 AND predicted_risk_score <= 1),
+  predicted_success_rate NUMERIC CHECK (predicted_success_rate >= 0 AND predicted_success_rate <= 1),
+  prediction_window INTERVAL NOT NULL,
+  predicted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  valid_until TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_health_predictions_bank_valid
+  ON bank_health_predictions(bank_id, valid_until DESC);
+
+CREATE TABLE IF NOT EXISTS alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL,
+  entity TEXT,
+  severity TEXT NOT NULL DEFAULT 'info',
+  message TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_type ON alerts(type);
+CREATE INDEX IF NOT EXISTS idx_alerts_entity ON alerts(entity);
+
+-- ============================================================================
+-- AGENT DASHBOARD (Brique 138)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  molam_id TEXT UNIQUE,
+  full_name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  region TEXT,
+  country TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS agent_sales (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  merchant_id UUID,
+  amount NUMERIC(18, 2) NOT NULL,
+  currency VARCHAR(10) NOT NULL,
+  sale_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  region VARCHAR(100),
+  country VARCHAR(5),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS agent_float (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  balance NUMERIC(18, 2) NOT NULL DEFAULT 0,
+  currency VARCHAR(10) NOT NULL,
+  last_update TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by TEXT
+);
+
+CREATE TABLE IF NOT EXISTS agent_commissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  commission_rate NUMERIC(5, 2) NOT NULL,
+  commission_amount NUMERIC(18, 2) NOT NULL,
+  currency VARCHAR(10) NOT NULL,
+  source VARCHAR(50) NOT NULL,
+  period_start TIMESTAMPTZ,
+  period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_sales_date ON agent_sales(sale_date DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_sales_agent_currency ON agent_sales(agent_id, currency);
+CREATE INDEX IF NOT EXISTS idx_agent_commissions_date ON agent_commissions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_commissions_agent_currency ON agent_commissions(agent_id, currency);
+CREATE INDEX IF NOT EXISTS idx_agent_float_agent_currency ON agent_float(agent_id, currency);
+
+-- ============================================================================
 -- IDEMPOTENCY (Brique 104, 105)
 -- ============================================================================
 
@@ -299,6 +429,15 @@ CREATE TRIGGER otp_requests_updated_at BEFORE UPDATE ON otp_requests
 CREATE TRIGGER device_trust_updated_at BEFORE UPDATE ON device_trust
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER agents_updated_at BEFORE UPDATE ON agents
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER bank_profiles_updated_at BEFORE UPDATE ON bank_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER treasury_accounts_updated_at BEFORE UPDATE ON treasury_accounts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- ============================================================================
 -- SAMPLE DATA (for testing)
 -- ============================================================================
@@ -311,6 +450,36 @@ ON CONFLICT DO NOTHING;
 -- Insert test payment intent
 INSERT INTO payment_intents (id, amount, currency, status, customer_id, client_secret) VALUES
   ('00000000-0000-0000-0000-000000000002', 10000, 'XOF', 'pending', '00000000-0000-0000-0000-000000000001', 'pi_test_secret_123')
+ON CONFLICT DO NOTHING;
+
+-- Insert reference bank profiles & treasury accounts
+INSERT INTO bank_profiles (id, bank_name, bank_code, country, currency, supported_currencies, risk_score)
+VALUES
+  ('00000000-0000-0000-0000-00000000B001', 'Molam Local SN', 'SNLOC', 'SN', 'XOF', ARRAY['XOF'], 0.10),
+  ('00000000-0000-0000-0000-00000000B002', 'Molam Pan-Africa', 'PAFR', 'CI', 'XOF', ARRAY['XOF','NGN','GHS','USD'], 0.12)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO treasury_accounts (id, bank_profile_id, currency, account_type, ledger_account_code)
+VALUES
+  ('00000000-0000-0000-0000-00000000TA01', '00000000-0000-0000-0000-00000000B001', 'XOF', 'operational', 'OPSN001'),
+  ('00000000-0000-0000-0000-00000000TA02', '00000000-0000-0000-0000-00000000B002', 'USD', 'operational', 'OPPA001')
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert demo agent + float snapshot for Brique 138
+INSERT INTO agents (id, molam_id, full_name, email, phone, region, country)
+VALUES (
+  '00000000-0000-0000-0000-00000000000A',
+  'AGENT-OPS-001',
+  'Awa Ndiaye',
+  'awa.ndiaye@molam.io',
+  '+221770000000',
+  'West Africa',
+  'SN'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO agent_float (agent_id, balance, currency)
+VALUES ('00000000-0000-0000-0000-00000000000A', 250000.00, 'XOF')
 ON CONFLICT DO NOTHING;
 
 -- ============================================================================
