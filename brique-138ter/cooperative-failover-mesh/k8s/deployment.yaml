@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mesh-controller
+  labels:
+    app: mesh-controller
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mesh-controller
+  template:
+    metadata:
+      labels:
+        app: mesh-controller
+        version: v1
+    spec:
+      containers:
+        - name: controller
+          image: molam/cooperative-failover-mesh:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: database_url
+            - name: KAFKA_BROKERS
+              value: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+            - name: KAFKA_CLIENT_ID
+              value: "mesh-controller"
+            - name: KAFKA_SSL
+              value: "true"
+            - name: SIRA_API_URL
+              value: "http://sira-service:3000"
+            - name: SIRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sira-credentials
+                  key: api_key
+            - name: SIRA_MODEL_VERSION
+              value: "v2.5.1"
+            - name: SIRA_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sira-credentials
+                  key: signing_key
+            - name: TREASURY_API_URL
+              value: "http://treasury-service:3000"
+            - name: SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: service-tokens
+                  key: internal_service_token
+            - name: ENABLE_CONTROLLER
+              value: "true"
+            - name: LOG_LEVEL
+              value: "info"
+          resources:
+            requests:
+              cpu: 300m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mesh-controller
+  labels:
+    app: mesh-controller
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: mesh-controller
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mesh-controller-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mesh-controller
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
