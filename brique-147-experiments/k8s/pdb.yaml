@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: molam-experiments-pdb
+  namespace: molam-pay
+  labels:
+    app: molam-experiments
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: molam-experiments

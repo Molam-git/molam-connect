@@ -1,0 +1,96 @@
+{
+  "pay_now": "Payer maintenant",
+  "cancel": "Annuler",
+  "confirm": "Confirmer",
+  "balance": "Solde",
+  "transaction_history": "Historique des transactions",
+  "welcome_message": "Bon retour !",
+  "error_network": "Erreur réseau. Veuillez réessayer.",
+  "success_payment": "Paiement réussi !",
+
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "import": "Importer",
+    "refresh": "Actualiser",
+    "retry": "Réessayer",
+    "yes": "Oui",
+    "no": "Non"
+  },
+
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "signup": "S'inscrire",
+    "forgot_password": "Mot de passe oublié ?",
+    "reset_password": "Réinitialiser le mot de passe",
+    "email": "Email",
+    "password": "Mot de passe",
+    "remember_me": "Se souvenir de moi"
+  },
+
+  "wallet": {
+    "my_wallet": "Mon portefeuille",
+    "send_money": "Envoyer de l'argent",
+    "request_money": "Demander de l'argent",
+    "add_funds": "Ajouter des fonds",
+    "withdraw": "Retirer",
+    "recipient": "Destinataire",
+    "amount": "Montant",
+    "memo": "Note"
+  },
+
+  "checkout": {
+    "checkout": "Paiement",
+    "payment_method": "Méthode de paiement",
+    "card_number": "Numéro de carte",
+    "expiry_date": "Date d'expiration",
+    "cvv": "CVV",
+    "billing_address": "Adresse de facturation",
+    "total": "Total",
+    "subtotal": "Sous-total",
+    "tax": "Taxe",
+    "discount": "Réduction"
+  },
+
+  "errors": {
+    "required_field": "Ce champ est obligatoire",
+    "invalid_email": "Adresse email invalide",
+    "invalid_amount": "Montant invalide",
+    "insufficient_funds": "Fonds insuffisants",
+    "transaction_failed": "Transaction échouée",
+    "server_error": "Erreur serveur. Veuillez contacter le support."
+  },
+
+  "accessibility": {
+    "skip_to_content": "Aller au contenu principal",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "toggle_theme": "Basculer le mode sombre",
+    "increase_font": "Augmenter la taille de police",
+    "decrease_font": "Diminuer la taille de police",
+    "high_contrast": "Mode contraste élevé",
+    "reduce_motion": "Réduire les animations"
+  },
+
+  "settings": {
+    "settings": "Paramètres",
+    "language": "Langue",
+    "currency": "Devise",
+    "timezone": "Fuseau horaire",
+    "notifications": "Notifications",
+    "privacy": "Confidentialité",
+    "security": "Sécurité",
+    "accessibility": "Accessibilité",
+    "appearance": "Apparence"
+  }
+}

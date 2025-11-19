@@ -1,0 +1,118 @@
+{
+  "general": [
+    {
+      "id": "profile",
+      "label": "Profil utilisateur",
+      "labelEn": "User Profile",
+      "icon": "User",
+      "roles": ["owner", "ops", "merchant"],
+      "path": "/settings/profile",
+      "description": "Gérer les informations personnelles"
+    },
+    {
+      "id": "security",
+      "label": "Sécurité & Authentification",
+      "labelEn": "Security & Authentication",
+      "icon": "Shield",
+      "roles": ["owner", "ops"],
+      "path": "/settings/security",
+      "description": "2FA, mots de passe, sessions actives"
+    },
+    {
+      "id": "preferences",
+      "label": "Préférences",
+      "labelEn": "Preferences",
+      "icon": "Settings",
+      "roles": ["owner", "ops", "merchant", "finance"],
+      "path": "/settings/preferences",
+      "description": "Langue, devise, notifications"
+    }
+  ],
+  "finance": [
+    {
+      "id": "payments",
+      "label": "Méthodes de paiement",
+      "labelEn": "Payment Methods",
+      "icon": "CreditCard",
+      "roles": ["owner", "finance", "merchant"],
+      "path": "/settings/payments",
+      "description": "Cartes, Mobile Money, virements"
+    },
+    {
+      "id": "payouts",
+      "label": "Payouts & Trésorerie",
+      "labelEn": "Payouts & Treasury",
+      "icon": "Wallet",
+      "roles": ["owner", "finance", "ops"],
+      "path": "/settings/payouts",
+      "description": "Gestion des décaissements"
+    },
+    {
+      "id": "invoices",
+      "label": "Facturation",
+      "labelEn": "Invoicing",
+      "icon": "FileText",
+      "roles": ["owner", "finance"],
+      "path": "/settings/invoices",
+      "description": "Factures, devis, abonnements"
+    }
+  ],
+  "ops": [
+    {
+      "id": "alerts",
+      "label": "Alertes & Notifications",
+      "labelEn": "Alerts & Notifications",
+      "icon": "Bell",
+      "roles": ["owner", "ops"],
+      "path": "/settings/alerts",
+      "description": "Configurer les alertes système"
+    },
+    {
+      "id": "rbac",
+      "label": "Gestion des accès",
+      "labelEn": "Access Management",
+      "icon": "Users",
+      "roles": ["owner"],
+      "path": "/settings/rbac",
+      "description": "Rôles, permissions, équipes"
+    },
+    {
+      "id": "webhooks",
+      "label": "Webhooks & API",
+      "labelEn": "Webhooks & API",
+      "icon": "Webhook",
+      "roles": ["owner", "ops"],
+      "path": "/settings/webhooks",
+      "description": "Intégrations et webhooks"
+    },
+    {
+      "id": "logs",
+      "label": "Journaux d'audit",
+      "labelEn": "Audit Logs",
+      "icon": "FileSearch",
+      "roles": ["owner", "ops"],
+      "path": "/settings/logs",
+      "description": "Historique des actions"
+    }
+  ],
+  "marketing": [
+    {
+      "id": "campaigns",
+      "label": "Campagnes",
+      "labelEn": "Campaigns",
+      "icon": "Megaphone",
+      "roles": ["owner", "marketing"],
+      "path": "/settings/campaigns",
+      "description": "Gérer les campagnes marketing"
+    },
+    {
+      "id": "experiments",
+      "label": "Tests A/B",
+      "labelEn": "A/B Testing",
+      "icon": "FlaskConical",
+      "roles": ["owner", "marketing", "ops"],
+      "path": "/settings/experiments",
+      "description": "Expérimentations et optimisation"
+    }
+  ]
+}

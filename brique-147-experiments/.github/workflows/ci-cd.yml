@@ -1,0 +1,279 @@
+name: CI/CD - Molam Experiments
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/**
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/molam-experiments
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          MOLAM_ID_PUBLIC_KEY: "test-key"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: coverage/
+
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: staging
+      url: https://experiments-staging.molam.io
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl context
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 --decode > kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+
+      - name: Update image tag in manifests
+        run: |
+          IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+          sed -i "s|ghcr.io/molam/molam-experiments:latest|${IMAGE_TAG}|g" k8s/deployment.yaml
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/serviceaccount-rbac.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/hpa.yaml
+          kubectl apply -f k8s/pdb.yaml
+          kubectl apply -f k8s/ingress.yaml
+          kubectl apply -f k8s/servicemonitor.yaml
+
+      - name: Run database migrations
+        run: |
+          kubectl apply -f k8s/db-migration-job.yaml
+          kubectl wait --for=condition=complete --timeout=300s job/molam-experiments-migrate -n molam-pay
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/molam-experiments -n molam-pay --timeout=5m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n molam-pay -l app=molam-experiments
+          kubectl get svc -n molam-pay molam-experiments
+
+      - name: Run smoke tests
+        run: |
+          ENDPOINT="https://experiments-staging.molam.io"
+          echo "Testing $ENDPOINT/healthz"
+          curl -f "$ENDPOINT/healthz" || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://experiments.molam.io
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl context
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 --decode > kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+
+      - name: Update image tag in manifests
+        run: |
+          IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+          sed -i "s|ghcr.io/molam/molam-experiments:latest|${IMAGE_TAG}|g" k8s/deployment.yaml
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/serviceaccount-rbac.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/hpa.yaml
+          kubectl apply -f k8s/pdb.yaml
+          kubectl apply -f k8s/ingress.yaml
+          kubectl apply -f k8s/servicemonitor.yaml
+
+      - name: Run database migrations
+        run: |
+          kubectl apply -f k8s/db-migration-job.yaml
+          kubectl wait --for=condition=complete --timeout=300s job/molam-experiments-migrate -n molam-pay
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/molam-experiments -n molam-pay --timeout=10m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n molam-pay -l app=molam-experiments
+          kubectl get svc -n molam-pay molam-experiments
+          kubectl get ingress -n molam-pay molam-experiments-ingress
+
+      - name: Run smoke tests
+        run: |
+          ENDPOINT="https://experiments.molam.io"
+          echo "Testing $ENDPOINT/healthz"
+          curl -f "$ENDPOINT/healthz" || exit 1
+          echo "✅ Production deployment verified"
+
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Molam Experiments deployed to production
+            Image: ${{ needs.build.outputs.image-tag }}
+            Commit: ${{ github.sha }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      security-events: write
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

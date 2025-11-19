@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: molam-pay
+  labels:
+    name: molam-pay
+    istio-injection: disabled
+    app.kubernetes.io/part-of: molam-platform

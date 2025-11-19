@@ -1,0 +1,96 @@
+{
+  "pay_now": "Fay leegi",
+  "cancel": "Bàyyi",
+  "confirm": "Dëgal",
+  "balance": "Bàkkaar",
+  "transaction_history": "Lister transactions yi",
+  "welcome_message": "Dalal ak jamm!",
+  "error_network": "Njumte réseau. Jéematal.",
+  "success_payment": "Fay bi neex na!",
+
+  "common": {
+    "loading": "Dañu ngi yaatal...",
+    "save": "Yokk",
+    "delete": "Dindi",
+    "edit": "Soppi",
+    "close": "Tëj",
+    "back": "Dellu",
+    "next": "Ci topp",
+    "submit": "Yónne",
+    "search": "Seet",
+    "filter": "Tëral",
+    "export": "Génne",
+    "import": "Agsi",
+    "refresh": "Bees a yéeme",
+    "retry": "Jéematal",
+    "yes": "Waaw",
+    "no": "Déedéet"
+  },
+
+  "auth": {
+    "login": "Dugg",
+    "logout": "Génn",
+    "signup": "Bind",
+    "forgot_password": "Waxul ma mot de passe bi",
+    "reset_password": "Soppi mot de passe",
+    "email": "Email",
+    "password": "Mot de passe",
+    "remember_me": "Fàttali ma"
+  },
+
+  "wallet": {
+    "my_wallet": "Sama porte-monnaie",
+    "send_money": "Yónnee xaalis",
+    "request_money": "Laaj xaalis",
+    "add_funds": "Yokk xaalis",
+    "withdraw": "Jël xaalis",
+    "recipient": "Kilifa jël",
+    "amount": "Kaddu",
+    "memo": "Binndi"
+  },
+
+  "checkout": {
+    "checkout": "Fay",
+    "payment_method": "Yoon wu fay",
+    "card_number": "Nimero carte",
+    "expiry_date": "Bés bu pareer",
+    "cvv": "CVV",
+    "billing_address": "Adresse facturation",
+    "total": "Lépp",
+    "subtotal": "Sous-total",
+    "tax": "Taks",
+    "discount": "Wàññi"
+  },
+
+  "errors": {
+    "required_field": "Bii dafa war a am",
+    "invalid_email": "Email bu baax ul",
+    "invalid_amount": "Kaddu bu baax ul",
+    "insufficient_funds": "Xaalis dafa gënë",
+    "transaction_failed": "Transaction bi jàppantewul",
+    "server_error": "Njumte serveur. Jokkoo ak support."
+  },
+
+  "accessibility": {
+    "skip_to_content": "Jëm ci contenu bu njëkk",
+    "open_menu": "Ubbi menu",
+    "close_menu": "Tëj menu",
+    "toggle_theme": "Soppi mode sombre",
+    "increase_font": "Yàgg taille police",
+    "decrease_font": "Wàññi taille police",
+    "high_contrast": "Mode contraste bu gëna",
+    "reduce_motion": "Wàññi mouvements"
+  },
+
+  "settings": {
+    "settings": "Paramètres",
+    "language": "Làkk",
+    "currency": "Xaalis",
+    "timezone": "Waxtu",
+    "notifications": "Notifications",
+    "privacy": "Sutura",
+    "security": "Kéram",
+    "accessibility": "Accessibilité",
+    "appearance": "Melokaan"
+  }
+}

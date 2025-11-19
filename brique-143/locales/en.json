@@ -1,0 +1,96 @@
+{
+  "pay_now": "Pay Now",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "balance": "Balance",
+  "transaction_history": "Transaction History",
+  "welcome_message": "Welcome back!",
+  "error_network": "Network error. Please try again.",
+  "success_payment": "Payment successful!",
+
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "yes": "Yes",
+    "no": "No"
+  },
+
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signup": "Sign Up",
+    "forgot_password": "Forgot Password?",
+    "reset_password": "Reset Password",
+    "email": "Email",
+    "password": "Password",
+    "remember_me": "Remember Me"
+  },
+
+  "wallet": {
+    "my_wallet": "My Wallet",
+    "send_money": "Send Money",
+    "request_money": "Request Money",
+    "add_funds": "Add Funds",
+    "withdraw": "Withdraw",
+    "recipient": "Recipient",
+    "amount": "Amount",
+    "memo": "Memo"
+  },
+
+  "checkout": {
+    "checkout": "Checkout",
+    "payment_method": "Payment Method",
+    "card_number": "Card Number",
+    "expiry_date": "Expiry Date",
+    "cvv": "CVV",
+    "billing_address": "Billing Address",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount"
+  },
+
+  "errors": {
+    "required_field": "This field is required",
+    "invalid_email": "Invalid email address",
+    "invalid_amount": "Invalid amount",
+    "insufficient_funds": "Insufficient funds",
+    "transaction_failed": "Transaction failed",
+    "server_error": "Server error. Please contact support."
+  },
+
+  "accessibility": {
+    "skip_to_content": "Skip to main content",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "toggle_theme": "Toggle dark mode",
+    "increase_font": "Increase font size",
+    "decrease_font": "Decrease font size",
+    "high_contrast": "High contrast mode",
+    "reduce_motion": "Reduce motion"
+  },
+
+  "settings": {
+    "settings": "Settings",
+    "language": "Language",
+    "currency": "Currency",
+    "timezone": "Timezone",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "security": "Security",
+    "accessibility": "Accessibility",
+    "appearance": "Appearance"
+  }
+}

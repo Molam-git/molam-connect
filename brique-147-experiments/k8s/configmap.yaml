@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: molam-experiments-config
+  namespace: molam-pay
+  labels:
+    app: molam-experiments
+data:
+  # Application
+  APP_ENV: "production"
+  NODE_ENV: "production"
+  PORT: "8080"
+
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # Metrics
+  METRICS_PATH: "/metrics"
+  PROMETHEUS_JOB: "molam-experiments"
+
+  # Database connection pool
+  DATABASE_POOL_MIN: "2"
+  DATABASE_POOL_MAX: "20"
+  DATABASE_POOL_IDLE_TIMEOUT_MS: "30000"
+  DATABASE_POOL_CONNECTION_TIMEOUT_MS: "2000"
+
+  # CORS
+  CORS_ORIGIN: "https://ops.molam.io,https://pay.molam.io"
+
+  # Rate limiting (optional)
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+
+  # Thompson Sampling settings
+  BANDIT_MIN_SAMPLES_FOR_STOP: "100"
+  BANDIT_STOP_THRESHOLD: "0.95"

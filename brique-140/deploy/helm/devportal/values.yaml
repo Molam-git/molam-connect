@@ -1,0 +1,136 @@
+# BRIQUE 140 — Helm Chart Values
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/molam/devportal
+  pullPolicy: IfNotPresent
+  tag: "0.1.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8140"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 8140
+  targetPort: 8140
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: devportal.molam.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: devportal-tls
+      hosts:
+        - devportal.molam.com
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - devportal
+          topologyKey: kubernetes.io/hostname
+
+env:
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "8140"
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: molam-secrets
+        key: DATABASE_URL
+  - name: REDIS_URL
+    valueFrom:
+      secretKeyRef:
+        name: molam-secrets
+        key: REDIS_URL
+  - name: KAFKA_BROKERS
+    valueFrom:
+      configMapKeyRef:
+        name: molam-config
+        key: KAFKA_BROKERS
+  - name: VAULT_DEV_KEY
+    valueFrom:
+      secretKeyRef:
+        name: molam-secrets
+        key: VAULT_DEV_KEY
+  - name: MOLAM_ID_JWT_PUBLIC
+    valueFrom:
+      secretKeyRef:
+        name: molam-secrets
+        key: MOLAM_ID_JWT_PUBLIC
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8140
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8140
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3

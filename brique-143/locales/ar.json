@@ -1,0 +1,96 @@
+{
+  "pay_now": "ادفع الآن",
+  "cancel": "إلغاء",
+  "confirm": "تأكيد",
+  "balance": "الرصيد",
+  "transaction_history": "سجل المعاملات",
+  "welcome_message": "مرحبا بعودتك!",
+  "error_network": "خطأ في الشبكة. يرجى المحاولة مرة أخرى.",
+  "success_payment": "تم الدفع بنجاح!",
+
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "submit": "إرسال",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "import": "استيراد",
+    "refresh": "تحديث",
+    "retry": "إعادة المحاولة",
+    "yes": "نعم",
+    "no": "لا"
+  },
+
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "signup": "إنشاء حساب",
+    "forgot_password": "نسيت كلمة المرور؟",
+    "reset_password": "إعادة تعيين كلمة المرور",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "remember_me": "تذكرني"
+  },
+
+  "wallet": {
+    "my_wallet": "محفظتي",
+    "send_money": "إرسال أموال",
+    "request_money": "طلب أموال",
+    "add_funds": "إضافة أموال",
+    "withdraw": "سحب",
+    "recipient": "المستلم",
+    "amount": "المبلغ",
+    "memo": "ملاحظة"
+  },
+
+  "checkout": {
+    "checkout": "الدفع",
+    "payment_method": "طريقة الدفع",
+    "card_number": "رقم البطاقة",
+    "expiry_date": "تاريخ الانتهاء",
+    "cvv": "CVV",
+    "billing_address": "عنوان الفواتير",
+    "total": "المجموع",
+    "subtotal": "المجموع الفرعي",
+    "tax": "الضريبة",
+    "discount": "الخصم"
+  },
+
+  "errors": {
+    "required_field": "هذا الحقل مطلوب",
+    "invalid_email": "البريد الإلكتروني غير صالح",
+    "invalid_amount": "المبلغ غير صالح",
+    "insufficient_funds": "رصيد غير كافٍ",
+    "transaction_failed": "فشلت المعاملة",
+    "server_error": "خطأ في الخادم. يرجى الاتصال بالدعم."
+  },
+
+  "accessibility": {
+    "skip_to_content": "انتقل إلى المحتوى الرئيسي",
+    "open_menu": "فتح القائمة",
+    "close_menu": "إغلاق القائمة",
+    "toggle_theme": "تبديل الوضع الداكن",
+    "increase_font": "زيادة حجم الخط",
+    "decrease_font": "تقليل حجم الخط",
+    "high_contrast": "وضع التباين العالي",
+    "reduce_motion": "تقليل الحركة"
+  },
+
+  "settings": {
+    "settings": "الإعدادات",
+    "language": "اللغة",
+    "currency": "العملة",
+    "timezone": "المنطقة الزمنية",
+    "notifications": "الإشعارات",
+    "privacy": "الخصوصية",
+    "security": "الأمان",
+    "accessibility": "إمكانية الوصول",
+    "appearance": "المظهر"
+  }
+}

@@ -1,0 +1,39 @@
+name: deploy-pages
+
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build-storybook
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook
+          path: storybook-static
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: storybook
+          path: ./storybook-static
+      - name: Deploy to GitHub Pages
+        uses: actions/configure-pages@v4
+      - name: Upload to pages
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./storybook-static
+      - name: Publish
+        uses: actions/deploy-pages@v1
+

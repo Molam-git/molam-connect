@@ -1,0 +1,110 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: molam-translation-api
+  namespace: molam
+  labels:
+    app: molam-translation-api
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: molam-translation-api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: molam-translation-api
+        tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: molam-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: translation-api
+          image: ghcr.io/molam/molam-translation:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: molam-config
+            - secretRef:
+                name: molam-secrets
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "384Mi"
+            limits:
+              cpu: "700m"
+              memory: "768Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: libretranslate
+  namespace: molam
+  labels:
+    app: libretranslate
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: libretranslate
+  template:
+    metadata:
+      labels:
+        app: libretranslate
+    spec:
+      containers:
+        - name: libretranslate
+          image: libretranslate/libretranslate:latest
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: LT_LOAD_ONLY
+              value: "en,fr,ar,es,pt"
+            - name: LT_THREADS
+              value: "4"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"

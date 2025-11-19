@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: molam-experiments
+  namespace: molam-pay
+  labels:
+    app: molam-experiments
+    app.kubernetes.io/name: molam-experiments
+    app.kubernetes.io/component: api
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: molam-experiments
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
+  sessionAffinity: None

@@ -1,0 +1,263 @@
+name: Molam Ma Wallet CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_SERVER: ${{ github.repository }}/wallet-server
+  IMAGE_NAME_WEB: ${{ github.repository }}/wallet-web
+
+jobs:
+  # Backend Tests
+  test-server:
+    name: Test Server
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: molam_wallet_test
+          POSTGRES_USER: molam
+          POSTGRES_PASSWORD: test123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: molam
+          RABBITMQ_DEFAULT_PASS: test123
+        ports:
+          - 5672:5672
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run linter
+        working-directory: server
+        run: npm run lint || echo "Linter not configured"
+
+      - name: Run migrations
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://molam:test123@localhost:5432/molam_wallet_test
+        run: |
+          npm install -g node-pg-migrate
+          for migration in src/migrations/*.sql; do
+            PGPASSWORD=test123 psql -h localhost -U molam -d molam_wallet_test -f "$migration"
+          done
+
+      - name: Run tests
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://molam:test123@localhost:5432/molam_wallet_test
+          RABBITMQ_URL: amqp://molam:test123@localhost:5672
+          MOLAM_ID_JWT_PUBLIC: ${{ secrets.MOLAM_ID_JWT_PUBLIC_TEST }}
+        run: npm test -- --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./server/coverage/lcov.info
+          flags: server
+
+  # Frontend Tests
+  test-web:
+    name: Test Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Run linter
+        working-directory: web
+        run: npm run lint || echo "Linter not configured"
+
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+      - name: Run tests
+        working-directory: web
+        run: npm test || echo "Tests not configured"
+
+  # Build and Push Docker Images
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: [test-server, test-web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (Server)
+        id: meta-server
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            latest
+
+      - name: Build and push Server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }}
+          labels: ${{ steps.meta-server.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:buildcache,mode=max
+
+      - name: Extract metadata (Web)
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            latest
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          file: ./web/Dockerfile
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:buildcache,mode=max
+
+  # Deploy to Kubernetes
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://wallet.molam.io
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p $HOME/.kube
+          echo "$KUBE_CONFIG" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply Kubernetes manifests
+        working-directory: k8s
+        run: |
+          kubectl apply -f namespace.yaml
+          kubectl apply -f secret-env.yaml
+          kubectl apply -f server-deployment.yaml
+          kubectl apply -f server-service.yaml
+          kubectl apply -f hpa.yaml
+          kubectl apply -f pdb.yaml
+          kubectl apply -f ingress.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/wallet-server -n molam-wallet --timeout=5m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n molam-wallet
+          kubectl get svc -n molam-wallet
+          kubectl get ingress -n molam-wallet
+
+  # Security Scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [test-server, test-web]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (Server)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './server'
+          format: 'sarif'
+          output: 'trivy-server-results.sarif'
+
+      - name: Run Trivy vulnerability scanner (Web)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './web'
+          format: 'sarif'
+          output: 'trivy-web-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: '.'

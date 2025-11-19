@@ -1,0 +1,84 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: molam-experiments-migrate
+  namespace: molam-pay
+  labels:
+    app: molam-experiments
+    job-type: db-migration
+  annotations:
+    # Helm hook to run before deployment
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 3600  # Keep job for 1 hour after completion
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: molam-experiments
+        job-type: db-migration
+    spec:
+      serviceAccountName: molam-experiments-sa
+      restartPolicy: OnFailure
+
+      containers:
+        - name: migrate
+          image: ghcr.io/molam/molam-experiments:latest
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "🔄 Starting database migration..."
+              echo "Database: $DATABASE_URL"
+
+              # Run migrations using psql
+              if [ -f /app/migrations/147_experiments.sql ]; then
+                psql "$DATABASE_URL" -f /app/migrations/147_experiments.sql
+                echo "✅ Migration completed successfully"
+              else
+                echo "❌ Migration file not found"
+                exit 1
+              fi
+
+          envFrom:
+            - secretRef:
+                name: molam-experiments-secrets
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      # PostgreSQL client image alternative (if Node image doesn't have psql)
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "⏳ Waiting for PostgreSQL to be ready..."
+              until pg_isready -h $(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\).*/\1/p'); do
+                echo "PostgreSQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "✅ PostgreSQL is ready"
+          envFrom:
+            - secretRef:
+                name: molam-experiments-secrets

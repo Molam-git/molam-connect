@@ -1,0 +1,27 @@
+{
+  "showNotifications": true,
+  "showSettings": true,
+  "showUserMenu": true,
+  "languages": ["fr", "en", "wolof", "ar"],
+  "defaultLanguage": "fr",
+  "currencies": ["XOF", "XAF", "EUR", "USD", "GBP"],
+  "defaultCurrency": "XOF",
+  "theme": {
+    "primaryColor": "#0A84FF",
+    "headerHeight": "64px",
+    "backgroundColor": "#ffffff",
+    "textColor": "#0b1220",
+    "borderRadius": "12px"
+  },
+  "notifications": {
+    "enabled": true,
+    "realtime": true,
+    "maxDisplayed": 5,
+    "autoRefreshInterval": 30000
+  },
+  "accessibility": {
+    "keyboardNavigation": true,
+    "focusVisible": true,
+    "highContrast": false
+  }
+}
