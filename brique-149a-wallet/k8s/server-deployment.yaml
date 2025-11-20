@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-server
+  namespace: molam-wallet
+  labels:
+    app: wallet-server
+    component: backend
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: wallet-server
+  template:
+    metadata:
+      labels:
+        app: wallet-server
+        component: backend
+        version: v1
+    spec:
+      serviceAccountName: wallet-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      # Init container for migrations
+      initContainers:
+        - name: migrations
+          image: postgres:15-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "Running database migrations..."
+              for migration in /migrations/*.sql; do
+                if [ -f "$migration" ]; then
+                  echo "Running: $(basename $migration)"
+                  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$migration"
+                fi
+              done
+              echo "Migrations completed!"
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: DATABASE_URL
+            - name: DB_HOST
+              value: "postgres-service"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "molam"
+            - name: DB_NAME
+              value: "molam_wallet"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+              readOnly: true
+
+      containers:
+        - name: server
+          image: molam/wallet-server:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: wallet-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wallet-config
+                  key: PORT
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: wallet-config
+                  key: ALLOWED_ORIGINS
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: RABBITMQ_URL
+            - name: MOLAM_ID_JWT_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: MOLAM_ID_JWT_PUBLIC
+
+          # Resource limits
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+
+          # Volume mounts for writable directories
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: migrations
+          configMap:
+            name: wallet-migrations
+        - name: tmp
+          emptyDir: {}
+
+      # Anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - wallet-server
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wallet-service-account
+  namespace: molam-wallet

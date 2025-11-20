@@ -1,0 +1,57 @@
+---
+# ServiceMonitor for Prometheus Operator
+# Requires Prometheus Operator to be installed in the cluster
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: molam-id-metrics
+  namespace: molam
+  labels:
+    app: molam-id
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: molam-id
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: molam-notifications-metrics
+  namespace: molam
+  labels:
+    app: molam-notifications-api
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: molam-notifications-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: molam-translation-metrics
+  namespace: molam
+  labels:
+    app: molam-translation-api
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: molam-translation-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

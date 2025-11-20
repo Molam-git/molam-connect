@@ -1,0 +1,183 @@
+{
+  "dashboard": {
+    "title": "Molam Analytics Overview",
+    "tags": ["analytics", "molam", "payments"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "GMV (Last 24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT sumMerge(gmv) AS value FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 24 HOUR"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1000000, "color": "yellow" },
+                { "value": 10000000, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Transaction Count (Last 24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT countMerge(tx_count) AS value FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 24 HOUR"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "palette-classic" }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Fees Collected (Last 24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT sumMerge(fees_total) AS value FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 24 HOUR"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Disputes (Last 24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT countMerge(disputes_count) AS value FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 24 HOUR"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 10, "color": "yellow" },
+                { "value": 50, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "GMV Over Time",
+        "type": "timeseries",
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT bucket_ts AS time, sumMerge(gmv) AS gmv FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 7 DAY GROUP BY bucket_ts ORDER BY bucket_ts"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Transaction Volume",
+        "type": "timeseries",
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT bucket_ts AS time, countMerge(tx_count) AS transactions FROM analytics_agg_hour WHERE bucket_ts >= now() - INTERVAL 7 DAY GROUP BY bucket_ts ORDER BY bucket_ts"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "GMV by Country (Top 10)",
+        "type": "barchart",
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 18 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT country, sumMerge(gmv) AS gmv FROM analytics_agg_day WHERE bucket_ts >= today() - INTERVAL 7 DAY GROUP BY country ORDER BY gmv DESC LIMIT 10"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "GMV by Zone",
+        "type": "piechart",
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 18 },
+        "targets": [
+          {
+            "datasource": "ClickHouse",
+            "rawSql": "SELECT zone, sumMerge(gmv) AS gmv FROM analytics_agg_day WHERE bucket_ts >= today() - INTERVAL 7 DAY GROUP BY zone ORDER BY gmv DESC"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
+        }
+      }
+    ],
+    "refresh": "30s",
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    }
+  }
+}

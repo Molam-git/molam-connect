@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wallet-ingress
+  namespace: molam-wallet
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://molam.io,https://wallet.molam.io"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.wallet.molam.io
+      secretName: wallet-api-tls
+    - hosts:
+        - wallet.molam.io
+      secretName: wallet-web-tls
+  rules:
+    # API Backend
+    - host: api.wallet.molam.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wallet-server-service
+                port:
+                  number: 8080
+
+    # Web Frontend
+    - host: wallet.molam.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wallet-web-service
+                port:
+                  number: 8080

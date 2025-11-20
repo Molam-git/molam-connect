@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --molam-primary: #0A84FF;
+  --molam-bg: #ffffff;
+  --molam-surface: #f9fafb;
+  --molam-text: #0b1220;
+  --molam-radius: 12px;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--molam-bg);
+  color: var(--molam-text);
+}

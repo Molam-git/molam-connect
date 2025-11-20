@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: molam
+      POSTGRES_USER: molam
+      POSTGRES_PASSWORD: molam
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U molam"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - LT_LOAD_ONLY=en,fr,ar,es,pt
+      - LT_THREADS=4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/languages"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://molam:molam@db:5432/molam
+      TRANSLATION_API: http://libretranslate:5000/translate
+      MOLAM_ID_PUBLIC: ${MOLAM_ID_PUBLIC:-}
+      PORT: 8080
+      NODE_ENV: production
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      libretranslate:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE: http://localhost:8080
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: on-failure
+
+volumes:
+  db_data:

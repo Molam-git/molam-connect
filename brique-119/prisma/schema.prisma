@@ -1,0 +1,249 @@
+// Brique 119: Bank Profiles & Treasury Accounts
+// Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BankStatus {
+  active
+  inactive
+  suspended
+  pending
+}
+
+enum CertificationStatus {
+  certified
+  pending
+  expired
+  revoked
+}
+
+enum HealthStatus {
+  healthy
+  degraded
+  down
+}
+
+enum AccountType {
+  reserve
+  operational
+  payout
+  collection
+  settlement
+}
+
+enum ReconciliationStatus {
+  reconciled
+  pending
+  mismatch
+  error
+}
+
+enum EventCategory {
+  operational
+  compliance
+  financial
+  technical
+}
+
+enum EventSeverity {
+  info
+  warning
+  error
+  critical
+}
+
+enum CertStatus {
+  valid
+  expired
+  suspended
+  revoked
+}
+
+model BankProfile {
+  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String
+  bicCode               String              @unique @map("bic_code") @db.VarChar(11)
+  countryCode           String              @map("country_code") @db.Char(2)
+  apiEndpoint           String?             @map("api_endpoint")
+  contactEmail          String?             @map("contact_email")
+  contactPhone          String?             @map("contact_phone")
+  status                BankStatus          @default(pending)
+
+  // SLAs
+  slaSettlementDays     Int                 @default(3) @map("sla_settlement_days")
+  slaAvailability       Decimal             @default(99.99) @map("sla_availability") @db.Decimal(5, 2)
+  slaMaxFailureRate     Decimal             @default(1.00) @map("sla_max_failure_rate") @db.Decimal(5, 2)
+
+  // Certification & Compliance
+  certificationStatus   CertificationStatus @default(pending) @map("certification_status")
+  certificationExpiry   DateTime?           @map("certification_expiry") @db.Date
+  pciDssCompliant       Boolean             @default(false) @map("pci_dss_compliant")
+
+  // Integration
+  apiVersion            String?             @map("api_version") @db.VarChar(10)
+  supportsWebhooks      Boolean             @default(false) @map("supports_webhooks")
+  webhookUrl            String?             @map("webhook_url")
+
+  // Metadata
+  onboardingDate        DateTime?           @map("onboarding_date") @db.Date
+  lastHealthCheck       DateTime?           @map("last_health_check")
+  healthStatus          HealthStatus        @default(healthy) @map("health_status")
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at")
+  createdBy             String?             @map("created_by") @db.Uuid
+  updatedBy             String?             @map("updated_by") @db.Uuid
+
+  // Relations
+  treasuryAccounts      TreasuryAccount[]
+  slaTracking           BankSlaTracking[]
+  certifications        BankCertification[]
+  events                BankEvent[]
+
+  @@index([countryCode])
+  @@index([status])
+  @@index([healthStatus])
+  @@index([bicCode])
+  @@map("bank_profiles")
+}
+
+model TreasuryAccount {
+  id                      String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankId                  String                @map("bank_id") @db.Uuid
+  bank                    BankProfile           @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  // Account Details
+  accountNumber           String                @map("account_number")
+  accountName             String?               @map("account_name")
+  currency                String                @db.VarChar(3)
+  accountType             AccountType           @map("account_type")
+
+  // Balance & Limits
+  balance                 Decimal               @default(0) @db.Decimal(20, 6)
+  reservedBalance         Decimal               @default(0) @map("reserved_balance") @db.Decimal(20, 6)
+  // Note: available_balance is a generated column in SQL, not tracked by Prisma
+  minBalance              Decimal               @default(0) @map("min_balance") @db.Decimal(20, 6)
+  maxBalance              Decimal?              @map("max_balance") @db.Decimal(20, 6)
+
+  // Reconciliation
+  lastReconciled          DateTime?             @map("last_reconciled")
+  reconciliationStatus    ReconciliationStatus  @default(pending) @map("reconciliation_status")
+  reconciliationFrequency String                @default("daily") @map("reconciliation_frequency")
+
+  // Flags
+  isDefault               Boolean               @default(false) @map("is_default")
+  isActive                Boolean               @default(true) @map("is_active")
+  autoSweepEnabled        Boolean               @default(false) @map("auto_sweep_enabled")
+  sweepThreshold          Decimal?              @map("sweep_threshold") @db.Decimal(20, 6)
+
+  // Metadata
+  lastTransactionAt       DateTime?             @map("last_transaction_at")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @default(now()) @updatedAt @map("updated_at")
+  createdBy               String?               @map("created_by") @db.Uuid
+  updatedBy               String?               @map("updated_by") @db.Uuid
+
+  @@unique([bankId, accountNumber, currency])
+  @@index([bankId])
+  @@index([currency])
+  @@index([accountType])
+  @@index([isActive])
+  @@index([isDefault], map: "idx_treasury_default")
+  @@map("treasury_accounts")
+}
+
+model BankSlaTracking {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankId                    String    @map("bank_id") @db.Uuid
+  bank                      BankProfile @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  // Période de mesure
+  measurementPeriod         String    @map("measurement_period")
+  periodStart               DateTime  @map("period_start")
+  periodEnd                 DateTime  @map("period_end")
+
+  // Métriques
+  totalTransactions         Int       @default(0) @map("total_transactions")
+  successfulTransactions    Int       @default(0) @map("successful_transactions")
+  failedTransactions        Int       @default(0) @map("failed_transactions")
+  // Note: failure_rate is a generated column in SQL
+
+  // Settlement metrics
+  avgSettlementTimeHours    Decimal?  @map("avg_settlement_time_hours") @db.Decimal(10, 2)
+  maxSettlementTimeHours    Decimal?  @map("max_settlement_time_hours") @db.Decimal(10, 2)
+  onTimeSettlements         Int       @default(0) @map("on_time_settlements")
+  lateSettlements           Int       @default(0) @map("late_settlements")
+
+  // Availability metrics
+  uptimeSeconds             Int       @default(0) @map("uptime_seconds")
+  downtimeSeconds           Int       @default(0) @map("downtime_seconds")
+  // Note: availability_percent is a generated column in SQL
+
+  // SLA Compliance
+  slaMet                    Boolean   @default(true) @map("sla_met")
+  slaViolations             String[]  @map("sla_violations")
+
+  createdAt                 DateTime  @default(now()) @map("created_at")
+
+  @@unique([bankId, measurementPeriod, periodStart])
+  @@index([bankId])
+  @@index([periodStart, periodEnd])
+  @@index([slaMet], map: "idx_sla_violations")
+  @@map("bank_sla_tracking")
+}
+
+model BankCertification {
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankId              String      @map("bank_id") @db.Uuid
+  bank                BankProfile @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  certificationType   String      @map("certification_type") @db.VarChar(50)
+  certificationNumber String?     @map("certification_number")
+  issuingAuthority    String?     @map("issuing_authority")
+  issueDate           DateTime    @map("issue_date") @db.Date
+  expiryDate          DateTime    @map("expiry_date") @db.Date
+
+  status              CertStatus  @default(valid)
+
+  // Documents
+  certificateUrl      String?     @map("certificate_url")
+  verificationUrl     String?     @map("verification_url")
+
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([bankId, certificationType, certificationNumber])
+  @@index([bankId])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("bank_certifications")
+}
+
+model BankEvent {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankId          String         @map("bank_id") @db.Uuid
+  bank            BankProfile    @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  eventType       String         @map("event_type") @db.VarChar(50)
+  eventCategory   EventCategory  @map("event_category")
+  severity        EventSeverity  @default(info)
+
+  description     String?
+  metadata        Json?          @db.JsonB
+
+  triggeredBy     String?        @map("triggered_by") @db.Uuid
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([bankId])
+  @@index([eventType])
+  @@index([createdAt(sort: Desc)])
+  @@map("bank_events")
+}

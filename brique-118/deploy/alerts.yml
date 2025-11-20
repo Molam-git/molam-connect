@@ -1,0 +1,200 @@
+# Brique 118ter: Prometheus Alert Rules
+# Règles d'alerte pour le Playground
+
+groups:
+  - name: playground_performance
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          rate(molam_playground_test_runs_total{status="failure"}[5m])
+          /
+          rate(molam_playground_test_runs_total[5m])
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: playground-api
+        annotations:
+          summary: "High error rate in playground ({{ $value | humanizePercentage }})"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      # Very high error rate
+      - alert: CriticalErrorRate
+        expr: |
+          rate(molam_playground_test_runs_total{status="failure"}[5m])
+          /
+          rate(molam_playground_test_runs_total[5m])
+          > 0.25
+        for: 2m
+        labels:
+          severity: critical
+          component: playground-api
+        annotations:
+          summary: "Critical error rate in playground ({{ $value | humanizePercentage }})"
+          description: "Error rate is {{ $value | humanizePercentage }} - immediate action required"
+
+      # Slow requests (p95)
+      - alert: SlowRequestsP95
+        expr: |
+          histogram_quantile(0.95,
+            rate(molam_playground_request_duration_seconds_bucket[5m])
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: playground-api
+        annotations:
+          summary: "Slow requests detected (p95: {{ $value }}s)"
+          description: "95th percentile request duration is {{ $value }}s"
+
+  - name: playground_security
+    interval: 30s
+    rules:
+      # Critical attack attempts
+      - alert: CriticalAttackDetected
+        expr: |
+          sum(increase(molam_playground_fuzzing_alerts_total{severity="critical"}[5m])) > 5
+        for: 1m
+        labels:
+          severity: critical
+          type: security
+          component: playground-api
+        annotations:
+          summary: "Critical attack attempts detected"
+          description: "{{ $value }} critical attack attempts in the last 5 minutes"
+
+      # High volume of attacks
+      - alert: HighAttackVolume
+        expr: |
+          sum(rate(molam_playground_fuzzing_alerts_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          type: security
+          component: playground-api
+        annotations:
+          summary: "High volume of attack attempts"
+          description: "{{ $value }} attacks per second detected"
+
+      # SQL Injection spike
+      - alert: SQLInjectionSpike
+        expr: |
+          increase(molam_playground_fuzzing_alerts_total{attack_type="sql_injection"}[15m]) > 10
+        for: 5m
+        labels:
+          severity: high
+          type: security
+          attack_type: sql_injection
+        annotations:
+          summary: "SQL injection attack spike detected"
+          description: "{{ $value }} SQL injection attempts in 15 minutes"
+
+      # RBAC violation spike
+      - alert: RBACViolationSpike
+        expr: |
+          increase(molam_playground_rbac_violations_total[15m]) > 20
+        for: 5m
+        labels:
+          severity: critical
+          type: security
+          component: rbac
+        annotations:
+          summary: "Unusual RBAC violation activity"
+          description: "{{ $value }} RBAC violations in 15 minutes - possible privilege escalation attempt"
+
+  - name: playground_capacity
+    interval: 30s
+    rules:
+      # Excessive rate limiting
+      - alert: ExcessiveRateLimiting
+        expr: |
+          rate(molam_playground_rate_limit_hits_total[5m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: rate-limiter
+        annotations:
+          summary: "Many requests being rate limited"
+          description: "{{ $value }} requests/sec are being rate limited"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          molam_playground_memory_usage_bytes{type="heapUsed"}
+          /
+          molam_playground_memory_usage_bytes{type="heapTotal"}
+          > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: nodejs
+        annotations:
+          summary: "High memory usage ({{ $value | humanizePercentage }})"
+          description: "Heap usage is at {{ $value | humanizePercentage }}"
+
+      # Memory leak suspected
+      - alert: MemoryLeakSuspected
+        expr: |
+          delta(molam_playground_memory_usage_bytes{type="heapUsed"}[30m]) > 100000000
+        for: 30m
+        labels:
+          severity: warning
+          component: nodejs
+        annotations:
+          summary: "Possible memory leak detected"
+          description: "Heap usage increased by {{ $value | humanize }}B in 30 minutes"
+
+  - name: playground_availability
+    interval: 30s
+    rules:
+      # Service down
+      - alert: PlaygroundServiceDown
+        expr: up{job="molam_playground"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: playground-api
+        annotations:
+          summary: "Playground service is down"
+          description: "The playground metrics endpoint is not responding"
+
+      # No requests (possible issue)
+      - alert: NoRequestsReceived
+        expr: |
+          rate(molam_playground_test_runs_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: playground-api
+        annotations:
+          summary: "No requests received in 15 minutes"
+          description: "The playground might be experiencing issues or no traffic"
+
+  - name: playground_business_metrics
+    interval: 1m
+    rules:
+      # Low snippet generation
+      - alert: LowSnippetGeneration
+        expr: |
+          rate(molam_playground_snippets_generated_total[1h]) < 0.01
+        for: 2h
+        labels:
+          severity: info
+          component: features
+        annotations:
+          summary: "Low snippet generation rate"
+          description: "Only {{ $value }} snippets/sec generated in the last hour"
+
+      # High Sira error suggestions
+      - alert: HighSiraErrorSuggestions
+        expr: |
+          sum(rate(molam_playground_sira_suggestions_total{severity="error"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: sira
+        annotations:
+          summary: "High rate of Sira error suggestions"
+          description: "{{ $value }} error-level suggestions/sec - users might be struggling"

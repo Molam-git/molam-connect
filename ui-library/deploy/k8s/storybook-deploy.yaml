@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: molam-ui-storybook
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: molam-ui-storybook }
+  template:
+    metadata:
+      labels: { app: molam-ui-storybook }
+    spec:
+      containers:
+        - name: storybook
+          image: your-registry/molam-ui-storybook:latest
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: molam-ui-storybook
+spec:
+  selector: { app: molam-ui-storybook }
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+

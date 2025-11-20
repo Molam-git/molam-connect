@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: molam-config
+  namespace: molam
+  labels:
+    app.kubernetes.io/name: molam-platform
+data:
+  # Application
+  NODE_ENV: "production"
+  APP_ENV: "production"
+  APP_BASE_URL: "https://molam.com"
+  API_BASE_URL: "https://api.molam.com"
+
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # Localization
+  DEFAULT_LANG: "en"
+  DEFAULT_CURRENCY: "XOF"
+  SUPPORTED_LANGS: "en,fr,wo,ar,es,pt"
+
+  # Features
+  ENABLE_SIRA: "true"
+  ENABLE_NOTIFICATIONS: "true"
+  ENABLE_TRANSLATION: "true"
+
+  # Timeouts
+  HTTP_TIMEOUT: "30000"
+  DB_TIMEOUT: "10000"
+
+  # Rate Limiting
+  RATE_LIMIT_WINDOW: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "100"

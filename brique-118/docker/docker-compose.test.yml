@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # PostgreSQL test database
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: molam-test-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpass123
+      POSTGRES_DB: molam_connect_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Mock Sandbox Server
+  mock-sandbox:
+    build:
+      context: ../mock-sandbox
+      dockerfile: Dockerfile
+    container_name: molam-mock-sandbox
+    environment:
+      MOCK_PORT: 4001
+      MOCK_DELAY: 0
+      NODE_ENV: test
+    ports:
+      - "4001:4001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - postgres-test
+    networks:
+      - test-network
+
+  # Playground Backend (for E2E tests)
+  playground-backend:
+    build:
+      context: ../../brique-117/playground
+      dockerfile: Dockerfile
+    container_name: molam-playground-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:testpass123@postgres-test:5432/molam_connect_test
+      PORT: 8082
+      NODE_ENV: test
+      MOCK_SANDBOX_URL: http://mock-sandbox:4001
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mock-sandbox:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Cypress E2E Tests
+  cypress:
+    image: cypress/included:13.6.0
+    container_name: molam-cypress-tests
+    environment:
+      CYPRESS_BASE_URL: http://playground-backend:8082
+      CYPRESS_VIDEO: "true"
+      CYPRESS_SCREENSHOTS: "true"
+    volumes:
+      - ../tests/cypress:/e2e/cypress
+      - ../cypress.json:/e2e/cypress.json
+      - cypress-videos:/e2e/cypress/videos
+      - cypress-screenshots:/e2e/cypress/screenshots
+    working_dir: /e2e
+    entrypoint: cypress run
+    depends_on:
+      playground-backend:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  # Jest Unit Tests (for mock sandbox)
+  jest:
+    build:
+      context: ../
+      dockerfile: Dockerfile.jest
+    container_name: molam-jest-tests
+    environment:
+      NODE_ENV: test
+    volumes:
+      - ../tests/jest:/app/tests
+      - ../mock-sandbox:/app/mock-sandbox
+      - jest-coverage:/app/coverage
+    working_dir: /app
+    command: npm test -- --coverage
+    networks:
+      - test-network
+
+volumes:
+  postgres-test-data:
+    driver: local
+  cypress-videos:
+    driver: local
+  cypress-screenshots:
+    driver: local
+  jest-coverage:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge

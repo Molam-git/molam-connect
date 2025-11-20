@@ -216,6 +216,21 @@ $sqlFiles = @(
 
     # Brique 116quater - AI Adaptive Routing Over Time (extension de 116ter)
     "brique-116/migrations/004_adaptive_routing_over_time.sql"
+
+    # Brique 116quinquies - Dynamic A/B Routing (Sira Live Testing)
+    "brique-116/migrations/005_dynamic_ab_routing.sql"
+
+    # Brique 116sexies - Predictive Routing (Sira Forecasting)
+    "brique-116/migrations/006_predictive_routing.sql"
+
+    # Brique 116septies - AI Anomaly-Based Failover (Sira)
+    "brique-116/migrations/007_anomaly_failover.sql"
+
+    # Brique 117 - Developer Docs & Playground Interactif
+    "brique-117/migrations/001_playground.sql"
+
+    # Brique 119 - Bank Profiles & Treasury Accounts (Bank Onboarding / SLAs)
+    "brique-119/migrations/001_bank_profiles.sql"
 )
 
 Write-Host "✅ Trouvé $($sqlFiles.Count) fichiers SQL" -ForegroundColor Green

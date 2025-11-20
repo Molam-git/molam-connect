@@ -1,0 +1,206 @@
+{
+  "dashboard": {
+    "title": "Molam Playground - Metrics Dashboard",
+    "tags": ["molam", "playground", "observability"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Test Runs (Total)",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(molam_playground_test_runs_total[5m])",
+            "legendFormat": "{{status}} - {{method}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Requests/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Fuzzing Alerts",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(molam_playground_fuzzing_alerts_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Rate Limit Hits",
+        "type": "stat",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(molam_playground_rate_limit_hits_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area"
+        }
+      },
+      {
+        "id": 4,
+        "title": "RBAC Violations",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(molam_playground_rbac_violations_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Request Duration (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(molam_playground_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(molam_playground_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(molam_playground_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          { "format": "s", "label": "Duration" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Payload Size Distribution",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(molam_playground_payload_size_bytes_bucket[5m]))",
+            "legendFormat": "p95 - {{method}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "bytes", "label": "Size" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Snippets Generated (by Language)",
+        "type": "piechart",
+        "gridPos": { "x": 0, "y": 16, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (language) (molam_playground_snippets_generated_total)",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Sira Suggestions (by Type)",
+        "type": "table",
+        "gridPos": { "x": 8, "y": 16, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (suggestion_type, severity) (molam_playground_sira_suggestions_total)",
+            "format": "table",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Shared Sessions (by TTL Category)",
+        "type": "bargauge",
+        "gridPos": { "x": 16, "y": 16, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (ttl_category) (molam_playground_shared_sessions_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 10,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "molam_playground_memory_usage_bytes{type=\"heapUsed\"}",
+            "legendFormat": "Heap Used",
+            "refId": "A"
+          },
+          {
+            "expr": "molam_playground_memory_usage_bytes{type=\"heapTotal\"}",
+            "legendFormat": "Heap Total",
+            "refId": "B"
+          },
+          {
+            "expr": "molam_playground_memory_usage_bytes{type=\"rss\"}",
+            "legendFormat": "RSS",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          { "format": "bytes", "label": "Memory" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Attack Types Distribution",
+        "type": "heatmap",
+        "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (attack_type) (increase(molam_playground_fuzzing_alerts_total[1h]))",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  }
+}

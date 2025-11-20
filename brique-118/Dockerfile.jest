@@ -1,0 +1,31 @@
+# Brique 118: Jest Unit Tests - Dockerfile
+
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies for testing
+RUN apk add --no-cache git
+
+# Copy package files
+COPY mock-sandbox/package*.json ./mock-sandbox/
+COPY tests/jest/package*.json ./tests/jest/
+
+# Install dependencies
+WORKDIR /app/mock-sandbox
+RUN npm ci
+
+WORKDIR /app/tests/jest
+RUN npm ci
+
+# Copy source code
+WORKDIR /app
+COPY mock-sandbox ./mock-sandbox
+COPY tests/jest ./tests/jest
+
+# Set working directory for tests
+WORKDIR /app/tests/jest
+
+# Run tests
+CMD ["npm", "test", "--", "--coverage", "--ci"]

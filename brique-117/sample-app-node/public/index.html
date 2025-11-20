@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molam Pay - Sample App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .result-details {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Molam Pay</h1>
+        <p class="subtitle">Sample App - Testez l'intégration</p>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('payment')">Paiement</div>
+            <div class="tab" onclick="switchTab('refund')">Remboursement</div>
+        </div>
+
+        <!-- Tab Paiement -->
+        <div id="payment-tab" class="tab-content active">
+            <form id="payment-form">
+                <div class="form-group">
+                    <label>Montant (centimes)</label>
+                    <input type="number" id="amount" value="5000" required>
+                    <small style="color: #666;">Ex: 5000 = 50.00 FCFA</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Devise</label>
+                    <select id="currency" required>
+                        <option value="XOF">XOF - Franc CFA</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="USD">USD - Dollar</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Méthode</label>
+                    <select id="method" required>
+                        <option value="wallet">Mobile Money</option>
+                        <option value="card">Carte bancaire</option>
+                        <option value="bank_transfer">Virement</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="tel" id="phone" value="+221771234567" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email (optionnel)</label>
+                    <input type="email" id="email" placeholder="client@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Nom (optionnel)</label>
+                    <input type="text" id="name" placeholder="Amadou Diallo">
+                </div>
+
+                <button type="submit" id="submit-btn">
+                    Créer le paiement
+                </button>
+            </form>
+        </div>
+
+        <!-- Tab Remboursement -->
+        <div id="refund-tab" class="tab-content">
+            <form id="refund-form">
+                <div class="form-group">
+                    <label>ID du paiement</label>
+                    <input type="text" id="payment-id" placeholder="pay_1234567890" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Montant (optionnel)</label>
+                    <input type="number" id="refund-amount" placeholder="Montant total par défaut">
+                </div>
+
+                <div class="form-group">
+                    <label>Raison</label>
+                    <input type="text" id="refund-reason" placeholder="Demande du client">
+                </div>
+
+                <button type="submit" id="refund-btn">
+                    Créer le remboursement
+                </button>
+            </form>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            // Clear results
+            document.getElementById('result').classList.remove('show');
+        }
+
+        // Payment form
+        document.getElementById('payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('submit-btn');
+            const result = document.getElementById('result');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Traitement...';
+
+            try {
+                const response = await fetch('/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: document.getElementById('amount').value,
+                        currency: document.getElementById('currency').value,
+                        method: document.getElementById('method').value,
+                        phone: document.getElementById('phone').value,
+                        email: document.getElementById('email').value || undefined,
+                        name: document.getElementById('name').value || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.className = 'result success show';
+                    result.innerHTML = `
+                        <div class="result-title">✅ Paiement créé avec succès!</div>
+                        <div class="result-details">
+                            <strong>ID:</strong> ${data.payment.id}<br>
+                            <strong>Montant:</strong> ${data.payment.amount / 100} ${data.payment.currency}<br>
+                            <strong>Status:</strong> ${data.payment.status}<br>
+                            <strong>Méthode:</strong> ${data.payment.method}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erreur inconnue');
+                }
+            } catch (error) {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <div class="result-title">❌ Erreur</div>
+                    <div class="result-details">${error.message}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Créer le paiement';
+            }
+        });
+
+        // Refund form
+        document.getElementById('refund-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('refund-btn');
+            const result = document.getElementById('result');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Traitement...';
+
+            try {
+                const response = await fetch('/create-refund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payment_id: document.getElementById('payment-id').value,
+                        amount: document.getElementById('refund-amount').value || undefined,
+                        reason: document.getElementById('refund-reason').value || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.className = 'result success show';
+                    result.innerHTML = `
+                        <div class="result-title">✅ Remboursement créé avec succès!</div>
+                        <div class="result-details">
+                            <strong>ID:</strong> ${data.refund.id}<br>
+                            <strong>Paiement:</strong> ${data.refund.payment_id}<br>
+                            <strong>Montant:</strong> ${data.refund.amount ? data.refund.amount / 100 : 'Total'}<br>
+                            <strong>Status:</strong> ${data.refund.status}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erreur inconnue');
+                }
+            } catch (error) {
+                result.className = 'result error show';
+                result.innerHTML = `
+                    <div class="result-title">❌ Erreur</div>
+                    <div class="result-details">${error.message}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Créer le remboursement';
+            }
+        });
+    </script>
+</body>
+</html>

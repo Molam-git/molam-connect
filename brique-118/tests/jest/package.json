@@ -1,0 +1,48 @@
+{
+  "name": "brique-118-jest-tests",
+  "version": "1.0.0",
+  "description": "Jest unit tests for Mock Sandbox",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:hardened": "jest rbac.test.ts share-expiry.test.ts fuzzing.test.ts rate-limit.test.ts --verbose",
+    "test:rbac": "jest rbac.test.ts --verbose",
+    "test:share-expiry": "jest share-expiry.test.ts --verbose --testTimeout=30000",
+    "test:fuzzing": "jest fuzzing.test.ts --verbose --maxWorkers=2",
+    "test:rate-limit": "jest rate-limit.test.ts --verbose --testTimeout=60000",
+    "test:security": "npm run test:hardened -- --coverage",
+    "test:metrics": "jest trace.test.ts --verbose",
+    "test:all": "jest --verbose --coverage"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "./coverage",
+    "collectCoverageFrom": [
+      "../../mock-sandbox/**/*.js",
+      "!**/node_modules/**"
+    ],
+    "testMatch": [
+      "**/*.test.ts",
+      "**/*.test.js"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "prom-client": "^15.1.0"
+  }
+}

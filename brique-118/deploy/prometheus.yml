@@ -1,0 +1,68 @@
+# Brique 118ter: Prometheus Configuration
+# Configuration pour scraper les métriques du Playground
+
+global:
+  scrape_interval: 15s      # Scrape toutes les 15 secondes
+  evaluation_interval: 15s  # Évaluer les règles toutes les 15 secondes
+  external_labels:
+    cluster: 'molam-playground'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Molam Playground Metrics Server
+  - job_name: 'molam_playground'
+    static_configs:
+      - targets: ['localhost:3000']
+        labels:
+          service: 'playground-api'
+          component: 'backend'
+
+  # Mock Sandbox Server
+  - job_name: 'molam_sandbox'
+    static_configs:
+      - targets: ['localhost:4001']
+        labels:
+          service: 'mock-sandbox'
+          component: 'test-harness'
+
+  # Node Exporter (optionnel - pour métriques système)
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          component: 'infrastructure'
+
+  # PostgreSQL Exporter (optionnel - pour métriques DB)
+  - job_name: 'postgres_exporter'
+    static_configs:
+      - targets: ['localhost:9187']
+        labels:
+          component: 'database'
+          db: 'molam_connect'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'monitoring'
+
+# Remote write (optionnel - pour long-term storage)
+# remote_write:
+#   - url: 'http://cortex:9009/api/prom/push'
+
+# Remote read (optionnel)
+# remote_read:
+#   - url: 'http://cortex:9009/api/prom/read'

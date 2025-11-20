@@ -1,0 +1,16 @@
+# Brique 118ter: Grafana Dashboard Provider
+# Auto-provision dashboards from files
+
+apiVersion: 1
+
+providers:
+  - name: 'Molam Playground'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

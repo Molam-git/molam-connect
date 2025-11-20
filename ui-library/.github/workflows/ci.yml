@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: {}
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build storybook (static)
+        run: npm run build-storybook
+
+      - name: Build library (production)
+        run: npm run build
+
+      - name: Upload artifact - storybook-static
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: storybook-static
+
+  publish-storybook:
+    name: Publish Storybook to gh-pages
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Download storybook artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: storybook-static
+          path: ./storybook-static
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          publish_dir: ./storybook-static
+          publish_branch: gh-pages
+

@@ -1,0 +1,96 @@
+# BRIQUE 140 — CI/CD Pipeline
+
+name: Dev Portal CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: molam_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:6-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: brique-140/package-lock.json
+
+      - name: Install dependencies
+        working-directory: brique-140
+        run: npm ci
+
+      - name: Run database migrations
+        working-directory: brique-140
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/molam_test
+        run: |
+          psql $DATABASE_URL -f database/migrations/140_dev_portal.sql
+
+      - name: Run linter
+        working-directory: brique-140
+        run: npm run lint
+
+      - name: Build TypeScript
+        working-directory: brique-140
+        run: npm run build
+
+      - name: Run unit tests
+        working-directory: brique-140
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/molam_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+        run: npm test
+
+      - name: Install Playwright
+        working-directory: brique-140
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        working-directory: brique-140
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/molam_test
+        run: npx playwright test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: brique-140/test-results/
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: brique-140/coverage

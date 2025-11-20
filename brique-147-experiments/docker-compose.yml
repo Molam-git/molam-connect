@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: molam_experiments_db
+    environment:
+      POSTGRES_DB: molam
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: molam_experiments_api
+    ports:
+      - "3010:3010"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/molam
+      PORT: 3010
+      NODE_ENV: development
+      MOLAM_ID_PUBLIC_KEY: ${MOLAM_ID_PUBLIC_KEY}
+      SIRA_URL: ${SIRA_URL:-http://host.docker.internal:4000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:

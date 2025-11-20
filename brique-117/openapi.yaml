@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Molam Connect API
+  version: 1.0.0
+  description: API de paiement pour l'Afrique et le monde
+  contact:
+    name: Molam Support
+    email: dev@molam.com
+    url: https://docs.molam.com
+servers:
+  - url: https://api.molam.com/v1
+    description: Production
+  - url: https://sandbox.molam.com/v1
+    description: Sandbox
+
+paths:
+  /payments:
+    post:
+      summary: Créer un paiement
+      description: Crée une nouvelle transaction de paiement
+      operationId: createPayment
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+            examples:
+              xof_wallet:
+                summary: Paiement Mobile Money XOF
+                value:
+                  amount: 5000
+                  currency: XOF
+                  method: wallet
+                  customer:
+                    phone: "+221771234567"
+              eur_card:
+                summary: Paiement Carte EUR
+                value:
+                  amount: 10000
+                  currency: EUR
+                  method: card
+      responses:
+        '200':
+          description: Paiement créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - ApiKeyAuth: []
+
+  /payments/{id}:
+    get:
+      summary: Récupérer un paiement
+      operationId: getPayment
+      tags:
+        - Payments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Détails du paiement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Paiement non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - ApiKeyAuth: []
+
+  /refunds:
+    post:
+      summary: Créer un remboursement
+      operationId: createRefund
+      tags:
+        - Refunds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundCreate'
+      responses:
+        '200':
+          description: Remboursement créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+      security:
+        - ApiKeyAuth: []
+
+  /webhooks/test:
+    post:
+      summary: Tester un webhook
+      description: Envoie un webhook de test à votre endpoint
+      operationId: testWebhook
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                event_type:
+                  type: string
+                  enum: [payment.succeeded, payment.failed, refund.created]
+      responses:
+        '200':
+          description: Webhook envoyé
+      security:
+        - ApiKeyAuth: []
+
+components:
+  schemas:
+    PaymentCreate:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: integer
+          description: Montant en centimes
+          example: 5000
+        currency:
+          type: string
+          description: Code devise ISO 4217
+          enum: [XOF, EUR, USD, GNF, XAF]
+          example: XOF
+        method:
+          type: string
+          description: Méthode de paiement
+          enum: [card, wallet, bank_transfer]
+          example: wallet
+        customer:
+          type: object
+          properties:
+            phone:
+              type: string
+              example: "+221771234567"
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+        metadata:
+          type: object
+          description: Métadonnées personnalisées
+          additionalProperties: true
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: pay_1234567890
+        amount:
+          type: integer
+          example: 5000
+        currency:
+          type: string
+          example: XOF
+        method:
+          type: string
+          example: wallet
+        status:
+          type: string
+          enum: [pending, succeeded, failed, canceled]
+          example: succeeded
+        created_at:
+          type: string
+          format: date-time
+        customer:
+          type: object
+        metadata:
+          type: object
+
+    RefundCreate:
+      type: object
+      required:
+        - payment_id
+      properties:
+        payment_id:
+          type: string
+        amount:
+          type: integer
+          description: Montant à rembourser (optionnel, par défaut montant total)
+        reason:
+          type: string
+
+    Refund:
+      type: object
+      properties:
+        id:
+          type: string
+        payment_id:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+            message:
+              type: string
+            code:
+              type: string
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Utilisez 'Bearer sk_test_xxx' ou 'Bearer sk_live_xxx'"
+
+tags:
+  - name: Payments
+    description: Gestion des paiements
+  - name: Refunds
+    description: Gestion des remboursements
+  - name: Webhooks
+    description: Configuration des webhooks

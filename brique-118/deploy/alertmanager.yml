@@ -1,0 +1,83 @@
+# Brique 118ter: Alertmanager Configuration
+# Configuration des alertes et notifications
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical alerts
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      continue: true
+
+    # Security alerts
+    - match:
+        type: security
+      receiver: 'security-alerts'
+      continue: true
+
+receivers:
+  # Default receiver
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts'
+        send_resolved: true
+
+  # Critical alerts (PagerDuty, Slack, Email)
+  - name: 'critical-alerts'
+    # Slack
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#molam-alerts-critical'
+        title: '🚨 Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+        send_resolved: true
+
+    # Email (optionnel)
+    # email_configs:
+    #   - to: 'ops@molam.com'
+    #     from: 'alertmanager@molam.com'
+    #     smarthost: 'smtp.gmail.com:587'
+    #     auth_username: 'alertmanager@molam.com'
+    #     auth_password: 'password'
+    #     headers:
+    #       Subject: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+
+  # Warning alerts (Slack only)
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#molam-alerts-warning'
+        title: '⚠️ Warning Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+        send_resolved: true
+
+  # Security alerts (high priority)
+  - name: 'security-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#molam-security'
+        title: '🔒 Security Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

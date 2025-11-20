@@ -1,0 +1,41 @@
+{
+  "name": "molam-notifications-backend",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "worker": "node dist/notifications/dispatch-worker.js",
+    "migrate": "psql $DATABASE_URL -f ../database/migrations/144_notifications.sql",
+    "test": "jest --runInBand",
+    "test:api": "jest --config jest.config.js --runInBand"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "mustache": "^4.2.0",
+    "nodemailer": "^6.9.1",
+    "twilio": "^4.10.0",
+    "firebase-admin": "^11.8.0",
+    "prom-client": "^14.2.0",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.2.5",
+    "@types/pg": "^8.10.0",
+    "@types/mustache": "^4.2.2",
+    "@types/nodemailer": "^6.4.7",
+    "@types/jest": "^29.5.2",
+    "jest": "^29.5.0",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^2.0.12",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.1.3"
+  }
+}

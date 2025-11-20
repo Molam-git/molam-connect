@@ -1,0 +1,49 @@
+// BRIQUE 142-SIRA — SIRA gRPC Protocol Definition
+// Protobuf schema for SIRA model inference service
+
+syntax = "proto3";
+package sira;
+
+// Event sample for SIRA analysis
+message EventSample {
+  string id = 1;
+  string type = 2;           // event type (payment, chargeback, etc.)
+  double amount = 3;
+  string currency = 4;
+  string occurred_at = 5;    // ISO 8601 timestamp
+  map<string, string> meta = 6;
+}
+
+// Inference request
+message InferRequest {
+  string request_id = 1;                  // idempotency key
+  repeated EventSample samples = 2;       // event samples to analyze
+  string model_version = 3;               // optional: specific model version
+  map<string, string> context = 4;        // additional context (region, merchant_id, etc.)
+}
+
+// Justification item (explainability)
+message JustificationItem {
+  string name = 1;     // feature name
+  double value = 2;    // feature value or importance score
+  string note = 3;     // human-readable explanation
+}
+
+// Inference response
+message InferResponse {
+  string request_id = 1;                        // echo back request_id
+  string scenario = 2;                          // detected scenario
+  double confidence = 3;                        // confidence score 0.0-1.0
+  repeated JustificationItem justification = 4; // top features & explanations
+  repeated string suggested_actions = 5;        // action recommendations
+  string model_version = 6;                     // model version used
+  string dataset_hash = 7;                      // dataset version hash
+  string debug_info = 8;                        // optional debug info
+  map<string, double> metrics = 9;              // additional metrics
+}
+
+// SIRA Model Service
+service SiraModel {
+  // Run inference on event samples
+  rpc Infer (InferRequest) returns (InferResponse) {}
+}

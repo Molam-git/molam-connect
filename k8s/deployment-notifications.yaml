@@ -1,0 +1,141 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: molam-notifications-api
+  namespace: molam
+  labels:
+    app: molam-notifications-api
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: molam-notifications-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: molam-notifications-api
+        tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: molam-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: notifications-api
+          image: ghcr.io/molam/molam-notifications:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: molam-config
+            - secretRef:
+                name: molam-secrets
+          env:
+            - name: SERVICE_NAME
+              value: "molam-notifications-api"
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "384Mi"
+            limits:
+              cpu: "800m"
+              memory: "768Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: molam-notifications-worker
+  namespace: molam
+  labels:
+    app: molam-notifications-worker
+    tier: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: molam-notifications-worker
+  template:
+    metadata:
+      labels:
+        app: molam-notifications-worker
+        tier: worker
+    spec:
+      serviceAccountName: molam-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: notifications-worker
+          image: ghcr.io/molam/molam-notifications:latest
+          imagePullPolicy: IfNotPresent
+          command: ["npm", "run", "worker"]
+          envFrom:
+            - configMapRef:
+                name: molam-config
+            - secretRef:
+                name: molam-secrets
+          env:
+            - name: SERVICE_NAME
+              value: "molam-notifications-worker"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
