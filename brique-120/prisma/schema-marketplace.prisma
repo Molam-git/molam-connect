@@ -1,0 +1,161 @@
+// Sous-Brique 120bis: Marketplace Sellers Extension
+
+// Append to main schema.prisma or use separately
+
+enum SellerKycStatus {
+  pending
+  verified
+  blocked
+  suspended
+}
+
+enum SellerPayoutStatus {
+  pending
+  settled
+  failed
+  on_hold
+  cancelled
+}
+
+enum TransactionType {
+  sale
+  refund
+  commission
+  adjustment
+  fee
+}
+
+enum HoldType {
+  kyc_pending
+  compliance_review
+  ops_freeze
+  dispute
+}
+
+model MarketplaceSeller {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  marketplaceAccountId  String            @map("marketplace_account_id") @db.Uuid
+
+  sellerName            String            @map("seller_name")
+  sellerEmail           String?           @map("seller_email")
+
+  kycStatus             SellerKycStatus   @default(pending) @map("kyc_status")
+  kycVerifiedAt         DateTime?         @map("kyc_verified_at")
+
+  commissionRate        Decimal           @default(0.1000) @map("commission_rate") @db.Decimal(6, 4)
+  commissionType        String            @default("percentage") @map("commission_type") @db.VarChar(20)
+
+  settlementSchedule    String            @default("weekly") @map("settlement_schedule") @db.VarChar(20)
+  settlementDay         Int               @default(1) @map("settlement_day")
+  minPayoutAmount       Decimal           @default(10.00) @map("min_payout_amount") @db.Decimal(20, 6)
+
+  currency              String            @db.VarChar(3)
+
+  isVip                 Boolean           @default(false) @map("is_vip")
+  priorityLevel         Int               @default(0) @map("priority_level")
+
+  isActive              Boolean           @default(true) @map("is_active")
+
+  beneficiaryDetails    Json?             @map("beneficiary_details") @db.JsonB
+  metadata              Json?             @db.JsonB
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at")
+  createdBy             String?           @map("created_by") @db.Uuid
+  updatedBy             String?           @map("updated_by") @db.Uuid
+
+  payouts               SellerPayout[]
+  transactions          SellerTransaction[]
+  holds                 SellerHold[]
+
+  @@index([marketplaceAccountId], map: "idx_marketplace_sellers_marketplace")
+  @@index([kycStatus], map: "idx_marketplace_sellers_kyc")
+  @@index([isActive, settlementSchedule], map: "idx_marketplace_sellers_active")
+  @@index([isVip, priorityLevel], map: "idx_marketplace_sellers_vip")
+  @@map("marketplace_sellers")
+}
+
+model SellerPayout {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  marketplaceSellerId   String                @map("marketplace_seller_id") @db.Uuid
+  seller                MarketplaceSeller     @relation(fields: [marketplaceSellerId], references: [id], onDelete: Cascade)
+
+  parentPayoutId        String?               @map("parent_payout_id") @db.Uuid
+
+  grossAmount           Decimal               @map("gross_amount") @db.Decimal(20, 6)
+  commission            Decimal               @default(0) @db.Decimal(20, 6)
+  refunds               Decimal               @default(0) @db.Decimal(20, 6)
+  adjustments           Decimal               @default(0) @db.Decimal(20, 6)
+  netAmount             Decimal               @map("net_amount") @db.Decimal(20, 6)
+
+  salesCount            Int                   @default(0) @map("sales_count")
+  refundsCount          Int                   @default(0) @map("refunds_count")
+
+  periodStart           DateTime?             @map("period_start")
+  periodEnd             DateTime?             @map("period_end")
+
+  status                SellerPayoutStatus    @default(pending)
+  holdReason            String?               @map("hold_reason")
+
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @default(now()) @updatedAt @map("updated_at")
+  settledAt             DateTime?             @map("settled_at")
+
+  @@index([marketplaceSellerId, status], map: "idx_seller_payouts_seller")
+  @@index([parentPayoutId], map: "idx_seller_payouts_parent")
+  @@index([status, createdAt(sort: Desc)], map: "idx_seller_payouts_status")
+  @@index([periodStart, periodEnd], map: "idx_seller_payouts_period")
+  @@map("seller_payouts")
+}
+
+model SellerTransaction {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  marketplaceSellerId   String            @map("marketplace_seller_id") @db.Uuid
+  seller                MarketplaceSeller @relation(fields: [marketplaceSellerId], references: [id], onDelete: Cascade)
+
+  transactionType       TransactionType   @map("transaction_type")
+  amount                Decimal           @db.Decimal(20, 6)
+  currency              String            @db.VarChar(3)
+
+  referenceType         String?           @map("reference_type") @db.VarChar(50)
+  referenceId           String?           @map("reference_id") @db.Uuid
+
+  isSettled             Boolean           @default(false) @map("is_settled")
+  settledInPayoutId     String?           @map("settled_in_payout_id") @db.Uuid
+
+  description           String?
+  metadata              Json?             @db.JsonB
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+
+  @@index([marketplaceSellerId, isSettled], map: "idx_seller_txns_seller")
+  @@index([transactionType, createdAt(sort: Desc)], map: "idx_seller_txns_type")
+  @@index([isSettled, marketplaceSellerId], map: "idx_seller_txns_settled")
+  @@index([settledInPayoutId], map: "idx_seller_txns_payout")
+  @@map("seller_transactions")
+}
+
+model SellerHold {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  marketplaceSellerId   String            @map("marketplace_seller_id") @db.Uuid
+  seller                MarketplaceSeller @relation(fields: [marketplaceSellerId], references: [id], onDelete: Cascade)
+
+  holdType              String            @map("hold_type") @db.VarChar(50)
+  reason                String
+  amount                Decimal?          @db.Decimal(20, 6)
+
+  status                String            @default("active") @db.VarChar(20)
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  releasedAt            DateTime?         @map("released_at")
+  createdBy             String?           @map("created_by") @db.Uuid
+  releasedBy            String?           @map("released_by") @db.Uuid
+
+  @@index([marketplaceSellerId, status], map: "idx_seller_holds_seller")
+  @@index([holdType, status], map: "idx_seller_holds_type")
+  @@map("seller_holds")
+}

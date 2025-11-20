@@ -231,6 +231,86 @@ $sqlFiles = @(
 
     # Brique 119 - Bank Profiles & Treasury Accounts (Bank Onboarding / SLAs)
     "brique-119/migrations/001_bank_profiles.sql"
+
+    # Brique 120 - Payouts Engine & Scheduling
+    "brique-120/migrations/001_payouts_engine.sql"
+    "brique-120/migrations/002_marketplace_sellers.sql"
+    "brique-120/migrations/003_smart_marketplace.sql"
+
+    # Brique 121-129 - Banking & Treasury Advanced
+    "brique-121/database/schema.sql"
+    "brique-122/database/schema.sql"
+    "brique-123/database/schema.sql"
+    "brique-124/database/schema.sql"
+    "brique-125/database/schema.sql"
+    "brique-125/fx-aggregator/database/schema.sql"
+    "brique-126/database/schema.sql"
+    "brique-126/marketplace-payouts/database/schema.sql"
+    "brique-127/database/schema.sql"
+    "brique-128/database/schema.sql"
+    "brique-129/database/schema.sql"
+
+    # Brique 130-133 - Operations Core
+    "brique-130/database/schema.sql"
+    "brique-131/database/schema.sql"
+    "brique-132/database/schema.sql"
+    "brique-133/database/schema.sql"
+
+    # Brique 134 - Ops Controls
+    "brique-134/ops-controls-service/migrations/2025_01_18_create_ops_controls.sql"
+
+    # Brique 135 - Approvals Service
+    "brique-135/approvals-service/migrations/2025_01_19_create_approvals_tables.sql"
+
+    # Brique 136 - Notifications & Multi-channel
+    "brique-136/notifications-service/migrations/2025_01_19_create_notifications_tables.sql"
+    "brique-136bis/multichannel-service/migrations/2025_01_19_add_multichannel_support.sql"
+    "brique-136ter/risk-aware-approvals/migrations/2025_01_19_create_risk_aware_approvals.sql"
+
+    # Brique 137 - Merchant Dashboard
+    "brique-137/merchant-dashboard/migrations/2025_01_19_create_merchant_dashboard.sql"
+
+    # Brique 138 - AI Float Optimizer & Cooperative Failover
+    "brique-138/database/schema.sql"
+    "brique-138/ai-float-optimizer/migrations/2025_09_01_create_sira_tables.sql"
+    "brique-138/ai-float-optimizer/migrations/2025_09_11_alter_bank_profiles.sql"
+    "brique-138/ai-float-optimizer/migrations/2025_09_15_bank_health_monitor.sql"
+    "brique-138ter/cooperative-failover-mesh/migrations/2025_01_19_create_mesh_system.sql"
+
+    # Brique 139 - i18n Core
+    "brique-139/database/migrations/001_create_i18n_tables.sql"
+
+    # Brique 140 - Developer Portal (AI-Powered)
+    "brique-140/database/migrations/140_dev_portal.sql"
+    "brique-140/database/migrations/140bis_ai_assistant.sql"
+    "brique-140/database/migrations/140ter_auto_debug.sql"
+    "brique-140/database/migrations/140quater_1_simulator.sql"
+    "brique-140/database/migrations/140quater_self_healing.sql"
+
+    # Brique 141 - Ops UI
+    "brique-141/database/migrations/141_ops_ui.sql"
+
+    # Brique 142 - Alerts & Playbooks
+    "brique-142/database/migrations/142_alerts_playbooks.sql"
+    "brique-142-sira/database/migrations/142_sira_playbooks.sql"
+
+    # Brique 143 - i18n & Accessibility
+    "brique-143/database/migrations/143_i18n_accessibility.sql"
+    "brique-143bis/database/migrations/143bis_adaptive_ui.sql"
+    "brique-143ter/database/migrations/143ter_auto_translation.sql"
+
+    # Brique 144 - Notifications System
+    "brique-144-notifications/database/migrations/144_notifications.sql"
+
+    # Brique 145 - Analytics (ClickHouse)
+    "brique-145-analytics/migrations/clickhouse/001_init.sql"
+
+    # Brique 147 - Experiments & A/B Testing
+    "brique-147-experiments/database/migrations/147_experiments.sql"
+
+    # Brique 149 - Wallet & Connect
+    "brique-149a-wallet/server/src/migrations/001_init_wallets.sql"
+    "brique-149b-connect/server/src/migrations/001_init_connect.sql"
 )
 
 Write-Host "✅ Trouvé $($sqlFiles.Count) fichiers SQL" -ForegroundColor Green

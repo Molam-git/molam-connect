@@ -1,0 +1,352 @@
+// Brique 120: Payouts Engine & Scheduling
+// Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PayoutPriority {
+  instant
+  priority
+  normal
+  low
+}
+
+enum PayoutStatus {
+  pending
+  queued
+  processing
+  sent
+  settled
+  failed
+  cancelled
+  reversed
+}
+
+enum BatchStatus {
+  created
+  processing
+  sent
+  settled
+  failed
+  partial
+}
+
+enum HoldStatus {
+  active
+  released
+  expired
+  cancelled
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  expired
+}
+
+enum ApprovalAction {
+  approve
+  reject
+}
+
+enum EventSeverity {
+  info
+  warning
+  error
+  critical
+}
+
+model Payout {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalId     String        @unique @map("external_id")
+
+  // Origin
+  originModule   String        @map("origin_module") @db.VarChar(50)
+  originEntityId String        @map("origin_entity_id") @db.Uuid
+
+  // Amount & Currency
+  currency       String        @db.VarChar(3)
+  amount         Decimal       @db.Decimal(20, 6)
+  netAmount      Decimal?      @map("net_amount") @db.Decimal(20, 6)
+  molamFee       Decimal       @default(0) @map("molam_fee") @db.Decimal(12, 6)
+  bankFee        Decimal       @default(0) @map("bank_fee") @db.Decimal(12, 6)
+  // Note: total_deducted is a generated column in SQL
+
+  // Beneficiary
+  beneficiary    Json          @db.JsonB
+
+  // Routing
+  bankProfileId     String?    @map("bank_profile_id") @db.Uuid
+  treasuryAccountId String?    @map("treasury_account_id") @db.Uuid
+
+  // Priority & Scheduling
+  priority       PayoutPriority @default(normal)
+  scheduledRun   DateTime?      @map("scheduled_run")
+
+  // Status
+  status         PayoutStatus   @default(pending)
+
+  // Reference & Provider
+  referenceCode  String         @unique @map("reference_code")
+  providerRef    String?        @map("provider_ref")
+  providerResponse Json?        @map("provider_response") @db.JsonB
+
+  // Retries
+  attempts       Int            @default(0)
+  maxAttempts    Int            @default(6) @map("max_attempts")
+  nextRetryAt    DateTime?      @map("next_retry_at")
+  lastError      String?        @map("last_error")
+
+  // Reconciliation
+  reconciledAt      DateTime?  @map("reconciled_at")
+  reconciliationRef String?    @map("reconciliation_ref")
+
+  // Metadata
+  metadata       Json?          @db.JsonB
+
+  // Timestamps
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
+  sentAt         DateTime?      @map("sent_at")
+  settledAt      DateTime?      @map("settled_at")
+  failedAt       DateTime?      @map("failed_at")
+
+  // Audit
+  createdBy      String?        @map("created_by") @db.Uuid
+  approvedBy     String?        @map("approved_by") @db.Uuid
+  approvedAt     DateTime?      @map("approved_at")
+
+  // Relations
+  batchLines     PayoutBatchLine[]
+  events         PayoutEvent[]
+  approvals      PayoutApproval[]
+
+  @@index([status, scheduledRun], map: "idx_payouts_status_sched")
+  @@index([originModule, originEntityId], map: "idx_payouts_origin")
+  @@index([priority, createdAt], map: "idx_payouts_priority")
+  @@index([referenceCode], map: "idx_payouts_reference")
+  @@index([providerRef], map: "idx_payouts_provider_ref")
+  @@index([createdAt(sort: Desc)], map: "idx_payouts_created_at")
+  @@index([nextRetryAt], map: "idx_payouts_retry")
+  @@map("payouts")
+}
+
+model LedgerHold {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Entity
+  originEntityId   String      @map("origin_entity_id") @db.Uuid
+  currency         String      @db.VarChar(3)
+
+  // Amount
+  amount           Decimal     @db.Decimal(20, 6)
+  releasedAmount   Decimal     @default(0) @map("released_amount") @db.Decimal(20, 6)
+  // Note: remaining_amount is a generated column in SQL
+
+  // Reference
+  reason           String
+  refType          String?     @map("ref_type") @db.VarChar(50)
+  refId            String?     @map("ref_id") @db.Uuid
+
+  // Status
+  status           HoldStatus  @default(active)
+
+  // Expiry
+  expiresAt        DateTime?   @map("expires_at")
+
+  // Timestamps
+  createdAt        DateTime    @default(now()) @map("created_at")
+  releasedAt       DateTime?   @map("released_at")
+
+  @@index([originEntityId, currency, status], map: "idx_ledger_holds_entity")
+  @@index([refType, refId], map: "idx_ledger_holds_ref")
+  @@index([status], map: "idx_ledger_holds_status")
+  @@map("ledger_holds")
+}
+
+model PayoutBatch {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Routing
+  bankProfileId       String?      @map("bank_profile_id") @db.Uuid
+  treasuryAccountId   String?      @map("treasury_account_id") @db.Uuid
+  currency            String       @db.VarChar(3)
+
+  // Batch Info
+  batchDate           DateTime     @default(now()) @map("batch_date")
+  batchReference      String       @unique @map("batch_reference")
+
+  // Status
+  status              BatchStatus  @default(created)
+
+  // Aggregates
+  totalAmount         Decimal      @default(0) @map("total_amount") @db.Decimal(20, 6)
+  payoutsCount        Int          @default(0) @map("payouts_count")
+  successfulCount     Int          @default(0) @map("successful_count")
+  failedCount         Int          @default(0) @map("failed_count")
+
+  // Provider
+  providerBatchRef    String?      @map("provider_batch_ref")
+  providerResponse    Json?        @map("provider_response") @db.JsonB
+
+  // Timestamps
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at")
+  sentAt              DateTime?    @map("sent_at")
+  settledAt           DateTime?    @map("settled_at")
+
+  // Audit
+  createdBy           String?      @map("created_by") @db.Uuid
+  executedBy          String?      @map("executed_by") @db.Uuid
+
+  // Relations
+  lines               PayoutBatchLine[]
+  events              PayoutEvent[]
+
+  @@index([status, batchDate], map: "idx_payout_batches_status")
+  @@index([bankProfileId, currency], map: "idx_payout_batches_bank")
+  @@index([createdAt(sort: Desc)], map: "idx_payout_batches_created_at")
+  @@map("payout_batches")
+}
+
+model PayoutBatchLine {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  batchId      String       @map("batch_id") @db.Uuid
+  batch        PayoutBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  payoutId     String       @map("payout_id") @db.Uuid
+  payout       Payout       @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  amount       Decimal      @db.Decimal(20, 6)
+
+  status       String       @default("pending") @db.VarChar(20)
+  errorMessage String?      @map("error_message")
+
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  @@index([batchId], map: "idx_payout_batch_lines_batch")
+  @@index([payoutId], map: "idx_payout_batch_lines_payout")
+  @@index([status], map: "idx_payout_batch_lines_status")
+  @@map("payout_batch_lines")
+}
+
+model PayoutApproval {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  payoutId           String          @map("payout_id") @db.Uuid
+  payout             Payout          @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  // Approval threshold
+  requiredApprovals  Int             @default(2) @map("required_approvals")
+  currentApprovals   Int             @default(0) @map("current_approvals")
+
+  // Status
+  status             ApprovalStatus  @default(pending)
+
+  // Timestamps
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @default(now()) @updatedAt @map("updated_at")
+  expiresAt          DateTime?       @map("expires_at")
+  approvedAt         DateTime?       @map("approved_at")
+  rejectedAt         DateTime?       @map("rejected_at")
+
+  // Relations
+  signatures         PayoutApprovalSignature[]
+
+  @@index([payoutId], map: "idx_payout_approvals_payout")
+  @@index([status], map: "idx_payout_approvals_status")
+  @@map("payout_approvals")
+}
+
+model PayoutApprovalSignature {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  approvalId String          @map("approval_id") @db.Uuid
+  approval   PayoutApproval  @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  userId     String          @map("user_id") @db.Uuid
+  userRole   String          @map("user_role") @db.VarChar(50)
+
+  action     ApprovalAction
+  comment    String?
+
+  signedAt   DateTime        @default(now()) @map("signed_at")
+
+  @@index([approvalId], map: "idx_payout_approval_sigs_approval")
+  @@index([userId], map: "idx_payout_approval_sigs_user")
+  @@map("payout_approval_signatures")
+}
+
+model PayoutEvent {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  payoutId      String?        @map("payout_id") @db.Uuid
+  payout        Payout?        @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  batchId       String?        @map("batch_id") @db.Uuid
+  batch         PayoutBatch?   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  eventType     String         @map("event_type") @db.VarChar(50)
+  eventCategory String         @default("operational") @map("event_category") @db.VarChar(30)
+  severity      EventSeverity  @default(info)
+
+  description   String?
+  metadata      Json?          @db.JsonB
+
+  triggeredBy   String?        @map("triggered_by") @db.Uuid
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@index([payoutId, createdAt(sort: Desc)], map: "idx_payout_events_payout")
+  @@index([batchId, createdAt(sort: Desc)], map: "idx_payout_events_batch")
+  @@index([eventType, createdAt(sort: Desc)], map: "idx_payout_events_type")
+  @@index([createdAt(sort: Desc)], map: "idx_payout_events_created_at")
+  @@map("payout_events")
+}
+
+model PayoutRoutingRule {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Criteria
+  currency              String?   @db.VarChar(3)
+  minAmount             Decimal?  @map("min_amount") @db.Decimal(20, 6)
+  maxAmount             Decimal?  @map("max_amount") @db.Decimal(20, 6)
+  priority              String?   @db.VarChar(10)
+  originModule          String?   @map("origin_module") @db.VarChar(50)
+
+  // Routing
+  preferredBankId       String?   @map("preferred_bank_id") @db.Uuid
+  fallbackBankId        String?   @map("fallback_bank_id") @db.Uuid
+
+  // Fees
+  molamFeePercent       Decimal?  @map("molam_fee_percent") @db.Decimal(5, 4)
+  molamFeeFixed         Decimal?  @map("molam_fee_fixed") @db.Decimal(12, 6)
+  bankFeePercent        Decimal?  @map("bank_fee_percent") @db.Decimal(5, 4)
+  bankFeeFixed          Decimal?  @map("bank_fee_fixed") @db.Decimal(12, 6)
+
+  // Settings
+  autoBatch             Boolean   @default(true) @map("auto_batch")
+  requiresApproval      Boolean   @default(false) @map("requires_approval")
+  approvalThreshold     Decimal?  @map("approval_threshold") @db.Decimal(20, 6)
+
+  // Status
+  isActive              Boolean   @default(true) @map("is_active")
+
+  // Metadata
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+
+  @@index([currency, isActive], map: "idx_payout_routing_rules_currency")
+  @@index([priority, isActive], map: "idx_payout_routing_rules_priority")
+  @@map("payout_routing_rules")
+}
