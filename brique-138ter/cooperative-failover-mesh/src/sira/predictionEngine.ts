@@ -294,8 +294,8 @@ export function verifySignature(data: any, signature: string): boolean {
   try {
     jwt.verify(signature, SIRA_SIGNING_KEY, { algorithms: ["HS256"] });
     return true;
-  } catch (error) {
-    logger.error("Invalid SIRA signature", { error: error.message });
+  } catch (error: any) {
+    logger.error("Invalid SIRA signature", { error: error?.message || "Unknown error" });
     return false;
   }
 }
