@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Ma Wallet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="/translate.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-blue-500 to-blue-700 min-h-screen">
+  <!-- Header -->
+  <div class="px-6 pt-8 pb-4">
+    <div class="flex justify-between items-center">
+      <h1 class="text-white text-2xl font-bold">Molam Ma</h1>
+      <div class="flex items-center gap-4">
+        <select id="languageSelector" onchange="setLanguage(this.value)" class="px-3 py-2 rounded-lg bg-white/20 text-white backdrop-blur-md border-none cursor-pointer">
+          <option value="en">🇬🇧 English</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="wo">🇸🇳 Wolof</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="pt">🇵🇹 Português</option>
+        </select>
+        <a href="/" class="text-white">🏠</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Balance Card -->
+  <div class="px-6 pb-6">
+    <div class="bg-white rounded-3xl shadow-xl p-6">
+      <div class="text-center">
+        <p class="text-gray-500 text-sm mb-2" data-translate>Your Balance</p>
+        <h2 class="text-4xl font-bold text-gray-900 mb-4" id="balance">0 XOF</h2>
+
+        <!-- QR Code Section -->
+        <div id="qrSection" class="hidden mb-6 p-4 bg-gray-50 rounded-2xl">
+          <div class="bg-white p-4 rounded-xl inline-block">
+            <div id="qrcode" class="flex justify-center"></div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3" id="qrExpiry">Expires: ...</p>
+          <button
+            onclick="hideQR()"
+            class="mt-2 text-sm text-blue-600 hover:text-blue-700"
+            data-translate
+          >
+            Hide QR
+          </button>
+        </div>
+
+        <button
+          id="showQrBtn"
+          onclick="generateQRCode()"
+          class="mb-4 px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors"
+          data-translate
+        >
+          Show QR to Receive
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Grid -->
+  <div class="px-6 pb-6">
+    <h3 class="text-white text-lg font-semibold mb-4" data-translate>Quick Actions</h3>
+    <div class="grid grid-cols-3 gap-4" id="actionsGrid">
+      <!-- Actions will be dynamically inserted -->
+    </div>
+  </div>
+
+  <!-- Transaction History -->
+  <div class="bg-white rounded-t-3xl px-6 py-6 min-h-[40vh]">
+    <h3 class="text-gray-900 text-lg font-semibold mb-4" data-translate>Recent Transactions</h3>
+    <div id="historyContainer">
+      <!-- History will be dynamically inserted -->
+    </div>
+  </div>
+
+  <script>
+    let walletData = null;
+    let qrToken = null;
+
+    // Load wallet data on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      await fetchWalletData();
+    });
+
+    async function fetchWalletData() {
+      try {
+        const response = await fetch('/api/wallet/home');
+
+        if (!response.ok) throw new Error('Failed to fetch wallet data');
+
+        walletData = await response.json();
+
+        // Update balance
+        const balance = document.getElementById('balance');
+        balance.textContent = formatAmount(walletData.balance.balance, walletData.balance.currency);
+
+        // Render actions
+        renderActions();
+
+        // Render history
+        renderHistory();
+
+      } catch (error) {
+        console.error('Error fetching wallet:', error);
+        document.getElementById('balance').textContent = 'Error loading';
+      }
+    }
+
+    async function generateQRCode() {
+      try {
+        const response = await fetch('/api/wallet/qr/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            purpose: 'receive',
+            expiryMinutes: 15
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to generate QR');
+
+        qrToken = await response.json();
+
+        // Clear previous QR code
+        document.getElementById('qrcode').innerHTML = '';
+
+        // Generate new QR code
+        new QRCode(document.getElementById('qrcode'), {
+          text: qrToken.qr_url,
+          width: 200,
+          height: 200
+        });
+
+        // Show QR section
+        document.getElementById('qrSection').classList.remove('hidden');
+        document.getElementById('showQrBtn').classList.add('hidden');
+
+        // Update expiry time
+        const expiryTime = new Date(qrToken.expires_at).toLocaleTimeString('fr-FR');
+        document.getElementById('qrExpiry').textContent = `Expires: ${expiryTime}`;
+
+      } catch (error) {
+        console.error('Error generating QR:', error);
+        alert('Failed to generate QR code');
+      }
+    }
+
+    function hideQR() {
+      document.getElementById('qrSection').classList.add('hidden');
+      document.getElementById('showQrBtn').classList.remove('hidden');
+    }
+
+    function renderActions() {
+      if (!walletData || !walletData.actions) return;
+
+      const grid = document.getElementById('actionsGrid');
+      grid.innerHTML = '';
+
+      // Show first 6 actions (excluding those with sub-actions)
+      const actions = walletData.actions.filter(a => !a.sub).slice(0, 6);
+
+      actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.onclick = () => handleActionClick(action.k);
+        btn.className = 'bg-white/20 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center hover:bg-white/30 transition-all';
+        btn.innerHTML = `
+          <span class="text-3xl mb-2">${action.e}</span>
+          <span class="text-white text-xs text-center font-medium">${action.l}</span>
+        `;
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderHistory() {
+      if (!walletData || !walletData.history) return;
+
+      const container = document.getElementById('historyContainer');
+
+      if (walletData.history.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-gray-400"><p data-translate>No transactions yet</p></div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      const historyDiv = document.createElement('div');
+      historyDiv.className = 'space-y-3';
+
+      walletData.history.slice(0, 20).forEach(tx => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors';
+
+        const amountClass = tx.amount < 0 ? 'text-red-600' : 'text-green-600';
+        const sign = tx.amount < 0 ? '-' : '+';
+
+        item.innerHTML = `
+          <div class="flex-1">
+            <p class="text-gray-900 font-medium text-sm">${tx.label}</p>
+            <p class="text-gray-500 text-xs mt-1">${formatDate(tx.timestamp)}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-semibold ${amountClass}">
+              ${sign} ${formatAmount(Math.abs(tx.amount), tx.currency)}
+            </p>
+            <p class="text-gray-400 text-xs capitalize">${tx.category}</p>
+          </div>
+        `;
+
+        historyDiv.appendChild(item);
+      });
+
+      container.appendChild(historyDiv);
+    }
+
+    function handleActionClick(actionKey) {
+      console.log('Action clicked:', actionKey);
+
+      if (actionKey === 'receive') {
+        generateQRCode();
+      } else if (actionKey === 'transfer') {
+        alert('💸 Fonction Transfert\n\nEnvoyer de l\'argent à un autre utilisateur Molam.');
+      } else if (actionKey === 'merchant_payment') {
+        alert('🛒 Fonction Paiement\n\nPayer un marchand via QR code.');
+      } else if (actionKey === 'topup') {
+        alert('➕ Fonction Rechargement\n\nRecharger le wallet via Mobile Money ou carte bancaire.');
+      } else if (actionKey === 'withdraw') {
+        alert('💰 Fonction Retrait\n\nRetirer de l\'argent vers Mobile Money ou compte bancaire.');
+      } else if (actionKey === 'scan') {
+        alert('📷 Fonction Scanner\n\nScanner un QR code pour payer.');
+      }
+    }
+
+    function formatAmount(amount, currency) {
+      const absAmount = Math.abs(amount);
+
+      // Check if currency uses minor units (decimal places)
+      const minorUnit = ['XOF', 'XAF'].includes(currency) ? 0 : 2;
+
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: minorUnit,
+        maximumFractionDigits: minorUnit
+      }).format(absAmount);
+    }
+
+    function formatDate(timestamp) {
+      return new Date(timestamp).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  </script>
+</body>
+</html>

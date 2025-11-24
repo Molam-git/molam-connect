@@ -1,0 +1,43 @@
+replicaCount: 2
+image:
+  repository: registry.molam/pay-notifier
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  DATABASE_URL: "postgres://user:pass@postgresql.molam:5432/molam_pay"
+  SERVICE_JWT_PUBLIC: ""
+  NODE_ENV: "production"
+  VAULT_ADDR: "https://vault.svc:8200"
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5

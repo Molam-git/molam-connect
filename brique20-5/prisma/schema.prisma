@@ -1,0 +1,122 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model molam_currency {
+  code           String  @id
+  minor_units    Int
+  rounding_mode  String  @default("BANKERS")
+  min_txn_cents  BigInt  @default(1)
+  created_at     DateTime @default(now())
+  
+  molam_wallets  molam_wallets[]
+}
+
+model molam_users {
+  id         String  @id @default(uuid()) @db.Uuid
+  user_type  String
+  country    String
+  kyc_level  String  @default("P1")
+  is_active  Boolean @default(true)
+  created_at DateTime @default(now())
+  
+  molam_wallets    molam_wallets[]
+  idempotency_keys idempotency_keys[]
+}
+
+model molam_wallets {
+  id            String  @id @default(uuid()) @db.Uuid
+  user_id       String  @db.Uuid
+  currency      String
+  balance_cents BigInt  @default(0)
+  status        String  @default("ACTIVE")
+  
+  user           molam_users @relation(fields: [user_id], references: [id])
+  molam_currency molam_currency @relation(fields: [currency], references: [code])
+  
+  @@unique([user_id, currency])
+}
+
+model wallet_transactions {
+  id                 String   @id @default(uuid()) @db.Uuid
+  type               String
+  status             String
+  sender_wallet_id   String?  @db.Uuid
+  receiver_wallet_id String?  @db.Uuid
+  amount_cents       BigInt
+  fee_cents          BigInt   @default(0)
+  currency           String
+  note               String?
+  reversible_until   DateTime?
+  created_at         DateTime @default(now())
+  
+  ledger_entries ledger_entries[]
+  revenue_ledger revenue_ledger[]
+}
+
+model ledger_entries {
+  id             BigInt   @id @default(autoincrement())
+  transaction_id String   @db.Uuid
+  wallet_id      String?  @db.Uuid
+  account        String
+  direction      String
+  amount_cents   BigInt
+  currency       String
+  created_at     DateTime @default(now())
+  
+  wallet_transactions wallet_transactions @relation(fields: [transaction_id], references: [id])
+}
+
+model revenue_ledger {
+  id             BigInt   @id @default(autoincrement())
+  transaction_id String   @db.Uuid
+  source         String
+  amount_cents   BigInt
+  currency       String
+  created_at     DateTime @default(now())
+  
+  wallet_transactions wallet_transactions @relation(fields: [transaction_id], references: [id])
+}
+
+model molam_fee_config {
+  id            BigInt   @id @default(autoincrement())
+  fee_type      String
+  country       String?
+  currency      String?
+  kyc_level     String?
+  percent       Float
+  min_fee_cents BigInt   @default(0)
+  max_fee_cents BigInt?
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+}
+
+model molam_limits {
+  id            BigInt   @id @default(autoincrement())
+  scope         String
+  country       String?
+  kyc_level     String?
+  daily_cents   BigInt
+  monthly_cents BigInt
+  active        Boolean  @default(true)
+}
+
+model idempotency_keys {
+  id             BigInt   @id @default(autoincrement())
+  user_id        String   @db.Uuid
+  endpoint       String
+  idem_key       String
+  request_hash   String
+  transaction_id String?  @db.Uuid
+  status         String
+  created_at     DateTime @default(now())
+  
+  user molam_users @relation(fields: [user_id], references: [id])
+  
+  @@unique([user_id, endpoint, idem_key])
+}

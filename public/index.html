@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Molam Connect - Test Dashboard</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="/translate.js"></script>
 </head>
 <body>
   <!-- Header -->
@@ -24,9 +25,17 @@
         <h1>Molam Connect</h1>
       </div>
       <div class="header-info">
+        <select id="languageSelector" onchange="setLanguage(this.value)" style="margin-right: 16px; padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px;">
+          <option value="en">🇬🇧 English</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="wo">🇸🇳 Wolof</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="pt">🇵🇹 Português</option>
+        </select>
         <span class="status" id="serverStatus">
           <span class="status-dot"></span>
-          Checking...
+          <span data-translate>Checking...</span>
         </span>
       </div>
     </div>
@@ -43,20 +52,23 @@
       <button class="tab" onclick="showTab('logs')">📊 Logs</button>
       <a href="/checkout.html" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">🛒 Checkout Demo</a>
       <a href="/offline.html" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">🔌 Offline (QR+USSD)</a>
+      <a href="/multi-currency-wallets.html" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;">💰 Wallets Multi-Devises (B1)</a>
+      <a href="/wallet-react" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">💰 Ma Wallet (149a)</a>
+      <a href="/merchant-dashboard.html" class="tab" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">📈 Merchant (149b)</a>
     </div>
 
     <!-- Payment Intent Tab -->
     <div id="tab-payment" class="tab-content active">
-      <h2>Create Payment Intent</h2>
-      <p class="description">Test payment intent creation and confirmation flow</p>
+      <h2 data-translate>Create Payment Intent</h2>
+      <p class="description" data-translate>Test payment intent creation and confirmation flow</p>
 
       <div class="form-group">
-        <label for="pi_amount">Amount (in cents)</label>
+        <label for="pi_amount" data-translate>Amount (in cents)</label>
         <input type="number" id="pi_amount" placeholder="10000" value="10000">
       </div>
 
       <div class="form-group">
-        <label for="pi_currency">Currency</label>
+        <label for="pi_currency" data-translate>Currency</label>
         <select id="pi_currency">
           <option value="USD">USD - US Dollar</option>
           <option value="XOF" selected>XOF - West African CFA</option>
@@ -66,17 +78,17 @@
       </div>
 
       <div class="form-group">
-        <label for="pi_description">Description</label>
+        <label for="pi_description" data-translate>Description</label>
         <input type="text" id="pi_description" placeholder="Payment for services">
       </div>
 
-      <button class="btn btn-primary" onclick="createPaymentIntent()">Create Payment Intent</button>
+      <button class="btn btn-primary" onclick="createPaymentIntent()" data-translate>Create Payment Intent</button>
 
       <div id="pi_result" class="result-box" style="display: none;"></div>
 
       <!-- Confirm Payment Section (shown after creation) -->
       <div id="confirm_section" style="display: none; margin-top: 32px;">
-        <h3>Confirm Payment</h3>
+        <h3 data-translate>Confirm Payment</h3>
         <div class="form-group">
           <label for="pi_id_confirm">Payment Intent ID</label>
           <input type="text" id="pi_id_confirm" readonly>
@@ -99,8 +111,8 @@
 
     <!-- Auth Decision Tab -->
     <div id="tab-auth" class="tab-content">
-      <h2>Make Auth Decision</h2>
-      <p class="description">Test SIRA-powered authentication method selection</p>
+      <h2 data-translate>Make Auth Decision</h2>
+      <p class="description" data-translate>Test SIRA-powered authentication method selection</p>
 
       <div class="form-group">
         <label for="auth_amount">Amount (in cents)</label>
@@ -188,8 +200,8 @@
 
     <!-- Customer Tab -->
     <div id="tab-customer" class="tab-content">
-      <h2>Create Customer</h2>
-      <p class="description">Test customer creation and management</p>
+      <h2 data-translate>Create Customer</h2>
+      <p class="description" data-translate>Test customer creation and management</p>
 
       <div class="form-group">
         <label for="cust_email">Email</label>

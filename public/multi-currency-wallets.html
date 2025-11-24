@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Connect - Multi-Currency Wallets (Brique 1)</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="/translate.js"></script>
+  <style>
+    .wallets-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .wallet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .wallet-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      position: relative;
+      transition: transform 0.3s;
+    }
+    .wallet-card:hover {
+      transform: translateY(-4px);
+    }
+    .wallet-card.default {
+      border: 3px solid #ffd700;
+      box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+    }
+    .wallet-card.default::before {
+      content: '⭐';
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 24px;
+    }
+    .wallet-currency {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .wallet-country {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+    .wallet-balance {
+      font-size: 40px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .wallet-label {
+      font-size: 12px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .wallet-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 12px;
+    }
+    .wallet-status.active {
+      background: rgba(72, 187, 120, 0.3);
+      color: #e6fffa;
+    }
+    .wallet-status.frozen {
+      background: rgba(237, 137, 54, 0.3);
+      color: #fffaf0;
+    }
+    .wallet-status.closed {
+      background: rgba(245, 101, 101, 0.3);
+      color: #fff5f5;
+    }
+    .add-wallet-card {
+      background: white;
+      border: 3px dashed #cbd5e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .add-wallet-card:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+    .add-wallet-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .add-wallet-text {
+      color: #4a5568;
+      font-weight: 600;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .modal-header {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 24px;
+      color: #2d3748;
+    }
+    .available-currencies {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .currency-option {
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    .currency-option:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+    .currency-option.selected {
+      border-color: #667eea;
+      background: #edf2f7;
+    }
+    .currency-flag {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .currency-code {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+    .currency-name {
+      font-size: 12px;
+      color: #718096;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    .info-box {
+      background: #f7fafc;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+          <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <h1 data-translate>Multi-Currency Wallets</h1>
+      </div>
+      <div class="header-info">
+        <select id="languageSelector" onchange="setLanguage(this.value)" style="margin-right: 16px; padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px;">
+          <option value="en">🇬🇧 English</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="wo">🇸🇳 Wolof</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="pt">🇵🇹 Português</option>
+        </select>
+        <a href="/" style="color: white; text-decoration: none;">← Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wallets-container main-content">
+    <h2>Brique 1 - Multi-Devises & Multi-Pays</h2>
+    <p class="description" data-translate>Manage your wallets in multiple currencies (XOF, XAF, USD, EUR)</p>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label" data-translate>Total Wallets</div>
+        <div class="stat-value" id="totalWallets">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" data-translate>Active Currencies</div>
+        <div class="stat-value" id="activeCurrencies">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" data-translate>Countries</div>
+        <div class="stat-value" id="totalCountries">0</div>
+      </div>
+    </div>
+
+    <!-- Wallets Grid -->
+    <div class="wallet-grid" id="walletsGrid">
+      <!-- Wallets will be dynamically inserted here -->
+      <div class="wallet-card add-wallet-card" onclick="showAddWalletModal()">
+        <div class="add-wallet-icon">➕</div>
+        <div class="add-wallet-text" data-translate>Add New Wallet</div>
+      </div>
+    </div>
+
+    <!-- Information Box -->
+    <div class="info-box">
+      <h4>✨ Features de Brique 1</h4>
+      <ul style="color: #4a5568; line-height: 1.8; margin: 12px 0;">
+        <li>✅ Support multi-devises (XOF, XAF, USD, EUR)</li>
+        <li>✅ Support multi-pays (SN, CI, CM, FR, US)</li>
+        <li>✅ Un wallet par devise et par utilisateur</li>
+        <li>✅ Formatage automatique selon minor_unit (0 ou 2 décimales)</li>
+        <li>✅ Wallet par défaut personnalisable</li>
+        <li>✅ Statuts: active, frozen, closed</li>
+        <li>✅ Codes ISO 4217 (devises) et ISO 3166-1 (pays)</li>
+      </ul>
+      <p style="margin-top: 15px; font-size: 14px; color: #718096;">
+        <strong>Tables:</strong> ref_countries, ref_currencies, molam_wallets<br>
+        <strong>User ID:</strong> <code>00000000-0000-0000-0000-000000000123</code> (test user)
+      </p>
+    </div>
+  </div>
+
+  <!-- Add Wallet Modal -->
+  <div class="modal" id="addWalletModal">
+    <div class="modal-content">
+      <div class="modal-header" data-translate>Create New Wallet</div>
+
+      <div class="form-group">
+        <label data-translate>Select Currency</label>
+        <div class="available-currencies" id="availableCurrencies">
+          <!-- Currencies will be loaded dynamically -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="walletDisplayName" data-translate>Display Name (optional)</label>
+        <input type="text" id="walletDisplayName" placeholder="e.g., Main Senegal Wallet" class="form-control">
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn btn-primary" onclick="createWallet()" data-translate>Create Wallet</button>
+        <button class="btn btn-secondary" onclick="closeAddWalletModal()" data-translate>Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Molam Connect - Brique 1: Multi-Devises & Multi-Pays</p>
+    </div>
+  </footer>
+
+  <script>
+    const TEST_USER_ID = '00000000-0000-0000-0000-000000000123';
+    let selectedCurrency = null;
+    let userWallets = [];
+    let availableCurrencies = [];
+    let availableCountries = [];
+
+    // Load data on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadAvailableCurrencies();
+      await loadAvailableCountries();
+      await loadUserWallets();
+    });
+
+    async function loadAvailableCurrencies() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sql: 'SELECT * FROM ref_currencies ORDER BY currency_code'
+          })
+        });
+        const data = await response.json();
+        availableCurrencies = data.rows || [];
+        console.log('Available currencies:', availableCurrencies);
+      } catch (error) {
+        console.error('Error loading currencies:', error);
+      }
+    }
+
+    async function loadAvailableCountries() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sql: 'SELECT * FROM ref_countries ORDER BY country_code'
+          })
+        });
+        const data = await response.json();
+        availableCountries = data.rows || [];
+        console.log('Available countries:', availableCountries);
+
+        // Update stats
+        document.getElementById('totalCountries').textContent = availableCountries.length;
+      } catch (error) {
+        console.error('Error loading countries:', error);
+      }
+    }
+
+    async function loadUserWallets() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sql: `
+              SELECT
+                w.*,
+                c.name as currency_name,
+                c.minor_unit,
+                co.name as country_name,
+                co.phone_country_code
+              FROM molam_wallets w
+              LEFT JOIN ref_currencies c ON w.currency = c.currency_code
+              LEFT JOIN ref_countries co ON w.country_code = co.country_code
+              WHERE w.user_id = '${TEST_USER_ID}'
+              ORDER BY w.is_default DESC, w.currency
+            `
+          })
+        });
+        const data = await response.json();
+        userWallets = data.rows || [];
+        console.log('User wallets:', userWallets);
+
+        // Update stats
+        document.getElementById('totalWallets').textContent = userWallets.length;
+        const uniqueCurrencies = new Set(userWallets.map(w => w.currency));
+        document.getElementById('activeCurrencies').textContent = uniqueCurrencies.size;
+
+        renderWallets();
+      } catch (error) {
+        console.error('Error loading wallets:', error);
+      }
+    }
+
+    function renderWallets() {
+      const grid = document.getElementById('walletsGrid');
+
+      // Clear existing wallets (keep the add button)
+      const addButton = grid.querySelector('.add-wallet-card');
+      grid.innerHTML = '';
+
+      // Render wallets
+      userWallets.forEach(wallet => {
+        const walletCard = createWalletCard(wallet);
+        grid.appendChild(walletCard);
+      });
+
+      // Re-add the add button
+      grid.appendChild(addButton);
+    }
+
+    function createWalletCard(wallet) {
+      const card = document.createElement('div');
+      card.className = `wallet-card ${wallet.is_default ? 'default' : ''}`;
+
+      // Format balance based on minor_unit
+      const balance = 0; // In real app, this would come from ledger
+      const formattedBalance = wallet.minor_unit === 0
+        ? balance.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+        : balance.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Get country flag emoji
+      const countryFlag = getCountryFlag(wallet.country_code);
+
+      card.innerHTML = `
+        <div class="wallet-currency">${countryFlag} ${wallet.currency}</div>
+        <div class="wallet-country">${wallet.country_name || wallet.country_code}</div>
+        <div class="wallet-label">Balance</div>
+        <div class="wallet-balance">${formattedBalance}</div>
+        <div class="wallet-status ${wallet.status}">${wallet.status}</div>
+        ${wallet.display_name ? `<div style="margin-top: 12px; font-size: 12px; opacity: 0.8;">${wallet.display_name}</div>` : ''}
+      `;
+
+      return card;
+    }
+
+    function getCountryFlag(countryCode) {
+      const flags = {
+        'SN': '🇸🇳',
+        'CI': '🇨🇮',
+        'CM': '🇨🇲',
+        'FR': '🇫🇷',
+        'US': '🇺🇸'
+      };
+      return flags[countryCode] || '🏳️';
+    }
+
+    function showAddWalletModal() {
+      const modal = document.getElementById('addWalletModal');
+      const currenciesContainer = document.getElementById('availableCurrencies');
+
+      // Get currencies user doesn't have yet
+      const userCurrencies = new Set(userWallets.map(w => w.currency));
+      const availableToAdd = availableCurrencies.filter(c => !userCurrencies.has(c.currency_code));
+
+      if (availableToAdd.length === 0) {
+        alert('You already have wallets in all available currencies!');
+        return;
+      }
+
+      // Render available currencies
+      currenciesContainer.innerHTML = '';
+      availableToAdd.forEach(currency => {
+        const country = availableCountries.find(c => c.currency_code === currency.currency_code);
+        const countryFlag = country ? getCountryFlag(country.country_code) : '💰';
+
+        const option = document.createElement('div');
+        option.className = 'currency-option';
+        option.onclick = () => selectCurrency(currency.currency_code, option);
+        option.innerHTML = `
+          <div class="currency-flag">${countryFlag}</div>
+          <div class="currency-code">${currency.currency_code}</div>
+          <div class="currency-name">${currency.name}</div>
+        `;
+        currenciesContainer.appendChild(option);
+      });
+
+      modal.classList.add('active');
+    }
+
+    function closeAddWalletModal() {
+      const modal = document.getElementById('addWalletModal');
+      modal.classList.remove('active');
+      selectedCurrency = null;
+      document.getElementById('walletDisplayName').value = '';
+
+      // Deselect all
+      document.querySelectorAll('.currency-option').forEach(el => {
+        el.classList.remove('selected');
+      });
+    }
+
+    function selectCurrency(currencyCode, element) {
+      selectedCurrency = currencyCode;
+
+      // Deselect all
+      document.querySelectorAll('.currency-option').forEach(el => {
+        el.classList.remove('selected');
+      });
+
+      // Select clicked
+      element.classList.add('selected');
+    }
+
+    async function createWallet() {
+      if (!selectedCurrency) {
+        alert('Please select a currency');
+        return;
+      }
+
+      const displayName = document.getElementById('walletDisplayName').value.trim();
+
+      // Find the country for this currency
+      const country = availableCountries.find(c => c.currency_code === selectedCurrency);
+      if (!country) {
+        alert('Country not found for this currency');
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:3000/api/db/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sql: `
+              INSERT INTO molam_wallets (user_id, country_code, currency, display_name, is_default)
+              VALUES ('${TEST_USER_ID}', '${country.country_code}', '${selectedCurrency}', ${displayName ? `'${displayName}'` : 'NULL'}, ${userWallets.length === 0})
+              RETURNING *
+            `
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.rows && data.rows.length > 0) {
+          alert(`✅ Wallet ${selectedCurrency} created successfully!`);
+          closeAddWalletModal();
+          await loadUserWallets();
+        } else {
+          alert('❌ Error creating wallet');
+        }
+      } catch (error) {
+        console.error('Error creating wallet:', error);
+        alert('❌ Error: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

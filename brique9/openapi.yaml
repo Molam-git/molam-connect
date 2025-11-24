@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: Molam Pay - Bills API
+  version: "1.0.0"
+servers:
+  - url: https://api.molam.com/pay/bills
+security:
+  - bearerAuth: []
+paths:
+  /v1/billers:
+    get:
+      summary: List billers by country/category
+      parameters:
+        - in: query
+          name: country
+          schema: { type: string, example: SN }
+        - in: query
+          name: category
+          schema: { type: string, example: POWER }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Biller'
+  /v1/accounts:
+    post:
+      summary: Link a bill account (contract/ref)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [billerId, customerRef, country]
+              properties:
+                billerId: { type: string, format: uuid }
+                productId: { type: string, format: uuid }
+                customerRef: { type: string }
+                nickname: { type: string }
+                country: { type: string }
+      responses:
+        "201": 
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillAccount'
+    get:
+      summary: List user bill accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillAccount'
+  /v1/invoices/lookup:
+    post:
+      summary: Fetch outstanding invoice for a bill account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountId]
+              properties:
+                accountId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /v1/payments:
+    post:
+      summary: Pay a bill (free for base categories)
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountId, amount, currency, walletId]
+              properties:
+                accountId: { type: string, format: uuid }
+                invoiceId: { type: string, format: uuid, nullable: true }
+                amount: { type: number }
+                currency: { type: string }
+                walletId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Payment initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  billPaymentId: { type: string, format: uuid }
+                  status: { type: string }
+  /v1/payments/{billPaymentId}:
+    get:
+      summary: Get bill payment status
+      parameters:
+        - in: path
+          name: billPaymentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillPayment'
+  /v1/webhooks/biller:
+    post:
+      summary: Inbound webhook from billers
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                billPaymentId: { type: string, format: uuid }
+                status: { type: string }
+                externalTxId: { type: string }
+      responses:
+        "200":
+          description: OK
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Biller:
+      type: object
+      properties:
+        biller_id: { type: string, format: uuid }
+        name: { type: string }
+        country_code: { type: string }
+        currency: { type: string }
+        category: { type: string }
+    BillAccount:
+      type: object
+      properties:
+        account_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        biller_id: { type: string, format: uuid }
+        customer_ref: { type: string }
+        nickname: { type: string }
+    Invoice:
+      type: object
+      properties:
+        invoice_id: { type: string, format: uuid }
+        amount_due: { type: number }
+        currency: { type: string }
+        status: { type: string }
+    BillPayment:
+      type: object
+      properties:
+        bill_payment_id: { type: string, format: uuid }
+        status: { type: string }
+        amount: { type: number }
+        currency: { type: string }

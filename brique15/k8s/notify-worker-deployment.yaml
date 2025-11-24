@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notify-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: notify-worker
+  template:
+    metadata:
+      labels:
+        app: notify-worker
+    spec:
+      containers:
+      - name: worker
+        image: registry/molam/notify-worker:1.0.0
+        envFrom:
+        - secretRef:
+            name: notify-secrets

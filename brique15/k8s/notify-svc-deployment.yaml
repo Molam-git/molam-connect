@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notify-svc
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: notify-svc
+  template:
+    metadata:
+      labels:
+        app: notify-svc
+    spec:
+      containers:
+      - name: api
+        image: registry/molam/notify-svc:1.0.0
+        env:
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: notify-secrets
+                key: pg_url
+          - name: KAFKA_BROKERS
+            value: "kafka-0:9092,kafka-1:9092"
+          - name: USER_JWT_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: id-keys
+                key: user_jwt_pub
+          - name: SERVICE_JWT_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mesh-keys
+                key: service_jwt_pub
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10

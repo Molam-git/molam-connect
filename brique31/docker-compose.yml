@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  aggregator:
+    build: ./services/aggregator
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - DATABASE_URL=postgresql://molam:password@postgres:5432/molam_pay
+      - MOLAM_ID_JWT_PUBLIC=-----BEGIN PUBLIC KEY-----\n...
+    ports:
+      - "3001:3001"
+    depends_on:
+      - kafka
+      - postgres
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.0
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092

@@ -1,0 +1,78 @@
+# docs/openapi/commission-api.yaml
+openapi: 3.0.3
+info:
+  title: Molam Pay - Agent Commissions
+  version: "1.0"
+servers:
+  - url: https://api.molam.com
+security:
+  - bearerAuth: []
+  - mTLS: []
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    mTLS: { type: mutualTLS }
+paths:
+  /api/agents/commissions/summary:
+    get:
+      summary: Current balances (accrued/locked/paid) per currency
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: agentId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Balances by currency
+  /api/agents/commissions/statements:
+    post:
+      summary: Create statement for period (finance/admin only)
+      security: [ { bearerAuth: [] }, { mTLS: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agentId, currency, periodStart, periodEnd]
+              properties:
+                agentId: { type: integer }
+                currency: { type: string }
+                periodStart: { type: string, format: date-time }
+                periodEnd: { type: string, format: date-time }
+      responses:
+        "201": { description: Statement created }
+  /api/agents/commissions/statements/{statementId}:
+    get:
+      summary: Get statement details (lines & totals)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: statementId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Statement detail }
+  /api/agents/commissions/statements/{statementId}/adjustments:
+    post:
+      summary: Add adjustment (+/-) to OPEN statement (audited)
+      security: [ { bearerAuth: [] }, { mTLS: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amountMinor, reasonCode]
+              properties:
+                amountMinor: { type: integer }
+                reasonCode: { type: string }
+      responses:
+        "200": { description: Adjustment applied }
+  /api/agents/commissions/statements/{statementId}/lock:
+    post:
+      summary: Lock statement (no more changes; ready for payout)
+      security: [ { bearerAuth: [] }, { mTLS: [] } ]
+      responses:
+        "200": { description: Locked }

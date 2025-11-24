@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Molam Pay - Agents API
+  version: "1.0"
+servers:
+  - url: https://api.molam.com
+security:
+  - mTLS: []
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    mTLS:
+      type: mutualTLS
+paths:
+  /api/agents/cash-in/init:
+    post:
+      summary: Initiate cash-in (self or other)
+      security:
+        - mTLS: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [opType, amountMinor, currency, receiverUserId, idempotencyKey]
+              properties:
+                opType: { type: string, enum: [CASHIN_SELF, CASHIN_OTHER] }
+                amountMinor: { type: integer, minimum: 1 }
+                currency: { type: string }
+                receiverUserId: { type: integer }
+                metadata: { type: object }
+                idempotencyKey: { type: string }
+      responses:
+        "201":
+          description: Operation created (PENDING)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opId: { type: integer }
+                  status: { type: string }
+                  feeMinor: { type: integer }
+  /api/agents/cash-in/confirm:
+    post:
+      summary: Confirm cash-in (approve/decline)
+      security:
+        - mTLS: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [opId, approve]
+              properties:
+                opId: { type: integer }
+                approve: { type: boolean }
+      responses:
+        "200": 
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opId: { type: integer }
+                  status: { type: string }
+  /api/agents/cash-out/init:
+    post:
+      summary: Initiate cash-out (beneficiary withdraws) - always free to receiver
+      security:
+        - mTLS: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amountMinor, currency, receiverUserId, idempotencyKey]
+              properties:
+                amountMinor: { type: integer, minimum: 1 }
+                currency: { type: string }
+                receiverUserId: { type: integer }
+                idempotencyKey: { type: string }
+      responses:
+        "201": 
+          description: Operation created (PENDING)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opId: { type: integer }
+                  status: { type: string }
+                  feeMinor: { type: integer }
+  /api/agents/cash-out/confirm:
+    post:
+      summary: Confirm cash-out (approve/decline)
+      security:
+        - mTLS: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [opId, approve]
+              properties:
+                opId: { type: integer }
+                approve: { type: boolean }
+      responses:
+        "200": 
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opId: { type: integer }
+                  status: { type: string }
+  /api/agents/ops/{opId}:
+    get:
+      summary: Get operation status
+      security:
+        - mTLS: []
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: opId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": 
+          description: Operation status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opId: { type: integer }
+                  opType: { type: string }
+                  status: { type: string }
+                  amountMinor: { type: integer }
+                  feeMinor: { type: integer }
+                  currency: { type: string }
+                  created_at: { type: string, format: date-time }

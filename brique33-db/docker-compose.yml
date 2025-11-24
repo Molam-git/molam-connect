@@ -1,0 +1,43 @@
+# docker-compose.yml
+version: '3.8'
+services:
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/molam
+      - AWS_REGION=us-west-2
+      - S3_BUCKET=molam-kyc
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: ./worker
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/molam
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=your_access_key
+      - AWS_SECRET_ACCESS_KEY=your_secret_key
+      - S3_BUCKET=molam-kyc
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - db
+      - kafka
+      - redis
+
+  db:
+    image: postgres:14
+    environment:
+      - POSTGRES_DB=molam
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+
+volumes:
+  postgres_data:

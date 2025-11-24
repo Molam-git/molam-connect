@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/molam_agents
+      - SERVICE_JWT_SECRET=your-service-jwt-secret
+      - USER_JWT_SECRET=your-user-jwt-secret
+      - NODE_ENV=development
+    depends_on:
+      - db
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=molam_agents
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/database/migrations:/docker-entrypoint-initdb.d
+
+volumes:
+  postgres_data:

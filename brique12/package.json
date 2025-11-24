@@ -1,0 +1,36 @@
+{
+    "name": "molam-pay-brique-11",
+    "version": "1.0.0",
+    "description": "Rewards & Refund Reconciliation Engine",
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "docker:up": "docker-compose up -d",
+        "docker:down": "docker-compose down"
+    },
+    "dependencies": {
+        "bullmq": "^5.9.0",
+        "crypto": "^1.0.1",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "express-rate-limit": "^7.1.5",
+        "helmet": "^7.1.0",
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/jest": "^29.5.14",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/node": "^20.8.0",
+        "@types/pg": "^8.10.9",
+        "jest": "^29.7.0",
+        "tsx": "^4.6.0",
+        "typescript": "^5.2.2"
+    }
+}

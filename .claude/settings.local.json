@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
-      "Bash(poetry --version:*)"
+      "Bash(poetry --version:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash($env:PGPASSWORD=\"postgres\")",
+      "Bash(psql:*)",
+      "Bash(done)",
+      "Bash(cat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:\\Users\\lomao\\Desktop\\Molam\\molam-connect\\find-all-sql.ps1\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy-translation.ps1)",
+      "Bash(powershell:*)",
+      "Bash(node server.js:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

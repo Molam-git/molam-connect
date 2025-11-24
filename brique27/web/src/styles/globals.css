@@ -1,0 +1,421 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --molam-primary: #0066FF;
+    --molam-secondary: #00C2FF;
+    --molam-accent: #00D4AA;
+    --molam-success: #10B981;
+    --molam-warning: #F59E0B;
+    --molam-error: #EF4444;
+    --molam-gray-50: #F9FAFB;
+    --molam-gray-100: #F3F4F6;
+    --molam-gray-200: #E5E7EB;
+    --molam-gray-300: #D1D5DB;
+    --molam-gray-400: #9CA3AF;
+    --molam-gray-500: #6B7280;
+    --molam-gray-600: #4B5563;
+    --molam-gray-700: #374151;
+    --molam-gray-800: #1F2937;
+    --molam-gray-900: #111827;
+}
+
+/* Base styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: white;
+    color: var(--molam-gray-900);
+    line-height: 1.5;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+}
+
+/* Typography scale */
+.text-display {
+    @apply text-4xl font-bold tracking-tight;
+}
+
+.text-title {
+    @apply text-2xl font-semibold tracking-tight;
+}
+
+.text-subtitle {
+    @apply text-lg font-medium tracking-tight;
+}
+
+.text-body {
+    @apply text-base font-normal;
+}
+
+.text-caption {
+    @apply text-sm font-normal text-gray-600;
+}
+
+.text-micro {
+    @apply text-xs font-medium uppercase tracking-wide text-gray-500;
+}
+
+/* Component styles */
+.molam-card {
+    @apply bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300;
+}
+
+.molam-card-header {
+    @apply p-6 border-b border-gray-100;
+}
+
+.molam-card-content {
+    @apply p-6;
+}
+
+.molam-card-footer {
+    @apply p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl;
+}
+
+/* Button variants */
+.btn {
+    @apply inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-primary {
+    @apply btn bg-molam-primary text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm hover:shadow;
+}
+
+.btn-secondary {
+    @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 border border-gray-300;
+}
+
+.btn-success {
+    @apply btn bg-molam-success text-white hover:bg-green-600 focus:ring-green-500;
+}
+
+.btn-warning {
+    @apply btn bg-molam-warning text-white hover:bg-yellow-600 focus:ring-yellow-500;
+}
+
+.btn-error {
+    @apply btn bg-molam-error text-white hover:bg-red-600 focus:ring-red-500;
+}
+
+.btn-ghost {
+    @apply btn text-gray-600 hover:bg-gray-100 focus:ring-gray-500;
+}
+
+.btn-sm {
+    @apply px-3 py-1.5 text-sm;
+}
+
+.btn-md {
+    @apply px-4 py-2 text-base;
+}
+
+.btn-lg {
+    @apply px-6 py-3 text-lg;
+}
+
+/* Form styles */
+.form-group {
+    @apply space-y-2;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-molam-primary focus:outline-none focus:ring-1 focus:ring-molam-primary transition-colors duration-200;
+}
+
+.form-input-error {
+    @apply border-molam-error focus:border-molam-error focus:ring-molam-error;
+}
+
+.form-error {
+    @apply text-sm text-molam-error mt-1;
+}
+
+.form-help {
+    @apply text-sm text-gray-500 mt-1;
+}
+
+/* Badge variants */
+.badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-primary {
+    @apply badge bg-blue-100 text-blue-800;
+}
+
+.badge-success {
+    @apply badge bg-green-100 text-green-800;
+}
+
+.badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+}
+
+.badge-error {
+    @apply badge bg-red-100 text-red-800;
+}
+
+.badge-gray {
+    @apply badge bg-gray-100 text-gray-800;
+}
+
+.badge-purple {
+    @apply badge bg-purple-100 text-purple-800;
+}
+
+/* Status indicators */
+.status-indicator {
+    @apply inline-block w-2 h-2 rounded-full;
+}
+
+.status-online {
+    @apply status-indicator bg-molam-success;
+}
+
+.status-offline {
+    @apply status-indicator bg-molam-error;
+}
+
+.status-pending {
+    @apply status-indicator bg-molam-warning;
+}
+
+.status-processing {
+    @apply status-indicator bg-molam-primary animate-pulse;
+}
+
+/* Table styles */
+.table-container {
+    @apply overflow-hidden rounded-xl border border-gray-200 bg-white;
+}
+
+.table {
+    @apply min-w-full divide-y divide-gray-200;
+}
+
+.table-header {
+    @apply bg-gray-50;
+}
+
+.table-header-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.table-body {
+    @apply divide-y divide-gray-200 bg-white;
+}
+
+.table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+}
+
+.table-cell-actions {
+    @apply px-6 py-4 whitespace-nowrap text-right text-sm font-medium;
+}
+
+/* Loading states */
+.loading-spinner {
+    @apply inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
+}
+
+.skeleton {
+    @apply bg-gray-200 animate-pulse rounded;
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* Toast notifications */
+.toast {
+    @apply fixed top-4 right-4 z-50 max-w-sm w-full molam-card shadow-lg;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast-exiting {
+    animation: slideOut 0.3s ease-in;
+}
+
+.toast-success {
+    @apply border-l-4 border-l-molam-success;
+}
+
+.toast-error {
+    @apply border-l-4 border-l-molam-error;
+}
+
+.toast-warning {
+    @apply border-l-4 border-l-molam-warning;
+}
+
+.toast-info {
+    @apply border-l-4 border-l-molam-primary;
+}
+
+/* Modal overlay */
+.modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-6 z-40;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-overlay-exiting {
+    animation: fadeOut 0.2s ease-in;
+}
+
+.modal-content {
+    @apply bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-content-exiting {
+    animation: slideOut 0.3s ease-in;
+}
+
+/* Progress bar */
+.progress-bar {
+    @apply w-full bg-gray-200 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+    @apply h-2 bg-molam-primary transition-all duration-500 ease-out;
+}
+
+/* Custom scrollbars */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--molam-gray-300) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--molam-gray-300);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--molam-gray-400);
+}
+
+/* Focus styles for accessibility */
+.focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-molam-primary focus:ring-offset-2;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .break-after {
+        page-break-after: always;
+    }
+
+    .break-before {
+        page-break-before: always;
+    }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .dark-mode-auto {
+        --molam-gray-50: #111827;
+        --molam-gray-100: #1F2937;
+        --molam-gray-200: #374151;
+        --molam-gray-300: #4B5563;
+        --molam-gray-400: #6B7280;
+        --molam-gray-500: #9CA3AF;
+        --molam-gray-600: #D1D5DB;
+        --molam-gray-700: #E5E7EB;
+        --molam-gray-800: #F3F4F6;
+        --molam-gray-900: #F9FAFB;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border-width: 2px;
+    }
+
+    .form-input {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

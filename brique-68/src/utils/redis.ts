@@ -2,6 +2,7 @@
  * Redis client for permission caching
  * Target: P50 < 5ms for cache hits
  */
+import 'dotenv/config';
 import Redis from 'ioredis';
 
 export const redis = new Redis({

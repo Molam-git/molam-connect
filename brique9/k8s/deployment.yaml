@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: molam-pay-bills
+  labels:
+    app: molam-pay-bills
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: molam-pay-bills
+  template:
+    metadata:
+      labels:
+        app: molam-pay-bills
+        version: v1
+    spec:
+      containers:
+        - name: api
+          image: registry.molam.com/pay/bills:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8080"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pay-secrets
+                  key: bills_db_url
+            - name: SERVICE_JWT_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: pay-secrets
+                  key: jwt_public_key
+            - name: KAFKA_BROKERS
+              value: "kafka-broker-1:9092,kafka-broker-2:9092"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: registry-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: molam-pay-bills-svc
+spec:
+  selector:
+    app: molam-pay-bills
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

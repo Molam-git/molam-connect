@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam Ma Wallet - Brique 149a</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .wallet-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .balance-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 30px;
+      border-radius: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    .balance-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    .balance-amount {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .balance-currency {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .action-btn {
+      padding: 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .action-btn.primary {
+      background: #667eea;
+      color: white;
+    }
+    .action-btn.secondary {
+      background: #f7fafc;
+      color: #2d3748;
+      border: 2px solid #e2e8f0;
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .action-icon {
+      font-size: 32px;
+    }
+    .qr-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      text-align: center;
+      margin-bottom: 30px;
+      display: none;
+    }
+    .qr-section.active {
+      display: block;
+    }
+    .qr-code {
+      width: 250px;
+      height: 250px;
+      margin: 20px auto;
+      background: #f7fafc;
+      border: 2px dashed #cbd5e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+    }
+    .history-section {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    .history-icon {
+      font-size: 24px;
+      margin-right: 12px;
+    }
+    .history-info {
+      flex: 1;
+    }
+    .history-label {
+      font-weight: 600;
+      color: #2d3748;
+    }
+    .history-date {
+      font-size: 12px;
+      color: #718096;
+    }
+    .history-amount {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .history-amount.credit {
+      color: #48bb78;
+    }
+    .history-amount.debit {
+      color: #f56565;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+          <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <h1>Molam Ma Wallet</h1>
+      </div>
+      <div class="header-info">
+        <a href="/" style="color: white; text-decoration: none;">← Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wallet-container main-content">
+    <h2>Brique 149a - Wallet</h2>
+    <p class="description">Portefeuille numérique multi-devises avec paiements QR</p>
+
+    <!-- Balance Card -->
+    <div class="balance-card">
+      <div class="balance-label">Solde disponible</div>
+      <div class="balance-amount" id="balance">75,000</div>
+      <div class="balance-currency">XOF (Francs CFA)</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="action-btn primary" onclick="showQR()">
+        <span class="action-icon">📱</span>
+        <span>Recevoir</span>
+      </button>
+      <button class="action-btn primary" onclick="scanQR()">
+        <span class="action-icon">📷</span>
+        <span>Payer</span>
+      </button>
+      <button class="action-btn secondary" onclick="transfer()">
+        <span class="action-icon">💸</span>
+        <span>Transférer</span>
+      </button>
+      <button class="action-btn secondary" onclick="topUp()">
+        <span class="action-icon">➕</span>
+        <span>Recharger</span>
+      </button>
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="qr-section" id="qrSection">
+      <h3>Recevoir un paiement</h3>
+      <p>Scannez ce QR code pour m'envoyer de l'argent</p>
+      <div class="qr-code">📱</div>
+      <p style="font-size: 12px; color: #718096;">Token: abc123...xyz</p>
+      <p style="font-size: 12px; color: #718096;">Expire dans: 14:32</p>
+      <button class="btn btn-secondary" onclick="hideQR()">Fermer</button>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="history-section">
+      <h3>Historique récent</h3>
+
+      <div class="history-item">
+        <span class="history-icon">📥</span>
+        <div class="history-info">
+          <div class="history-label">Reçu de Mohamed K.</div>
+          <div class="history-date">Aujourd'hui, 14:30</div>
+        </div>
+        <div class="history-amount credit">+5,000 XOF</div>
+      </div>
+
+      <div class="history-item">
+        <span class="history-icon">🛒</span>
+        <div class="history-info">
+          <div class="history-label">Achat chez Shop Express</div>
+          <div class="history-date">Aujourd'hui, 10:15</div>
+        </div>
+        <div class="history-amount debit">-2,500 XOF</div>
+      </div>
+
+      <div class="history-item">
+        <span class="history-icon">📤</span>
+        <div class="history-info">
+          <div class="history-label">Envoyé à Fatou D.</div>
+          <div class="history-date">Hier, 18:45</div>
+        </div>
+        <div class="history-amount debit">-10,000 XOF</div>
+      </div>
+
+      <div class="history-item">
+        <span class="history-icon">➕</span>
+        <div class="history-info">
+          <div class="history-label">Rechargement Mobile Money</div>
+          <div class="history-date">Hier, 09:00</div>
+        </div>
+        <div class="history-amount credit">+50,000 XOF</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #f7fafc; border-radius: 12px;">
+      <h4>Fonctionnalités de la Brique 149a</h4>
+      <ul style="color: #4a5568; line-height: 1.8;">
+        <li>✅ Génération de QR codes pour paiements</li>
+        <li>✅ Scan de QR codes pour payer</li>
+        <li>✅ Support multi-devises (XOF, XAF, EUR, USD)</li>
+        <li>✅ Historique des transactions en temps réel</li>
+        <li>✅ Intégration RabbitMQ pour le ledger</li>
+        <li>✅ Authentication JWT via Molam ID</li>
+        <li>✅ API REST complète</li>
+        <li>✅ Apps Mobile (React Native) et Web (React)</li>
+      </ul>
+      <p style="margin-top: 15px; font-size: 14px; color: #718096;">
+        <strong>API Endpoint:</strong> http://localhost:8080<br>
+        <strong>Status:</strong> Production Ready ✅
+      </p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Molam Connect - Brique 149a: Ma Wallet</p>
+    </div>
+  </footer>
+
+  <script>
+    function showQR() {
+      document.getElementById('qrSection').classList.add('active');
+      logAction('Génération QR code de paiement');
+    }
+
+    function hideQR() {
+      document.getElementById('qrSection').classList.remove('active');
+    }
+
+    function scanQR() {
+      alert('📷 Fonction Scanner QR\n\nOuvrir la caméra pour scanner un QR code de paiement.');
+      logAction('Ouverture du scanner QR');
+    }
+
+    function transfer() {
+      alert('💸 Fonction Transfert\n\nEnvoyer de l\'argent à un autre utilisateur Molam.');
+      logAction('Initiation transfert');
+    }
+
+    function topUp() {
+      alert('➕ Fonction Rechargement\n\nRecharger le wallet via Mobile Money ou carte bancaire.');
+      logAction('Demande de rechargement');
+    }
+
+    function logAction(action) {
+      console.log('[Wallet]', action);
+    }
+
+    // Simulate balance updates
+    setInterval(() => {
+      const balance = document.getElementById('balance');
+      const current = parseInt(balance.textContent.replace(/,/g, ''));
+      balance.textContent = current.toLocaleString('fr-FR');
+    }, 5000);
+  </script>
+</body>
+</html>

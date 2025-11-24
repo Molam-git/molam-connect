@@ -2,6 +2,7 @@
  * RBAC Service - Express Server
  * Port: 4068
  */
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -23,17 +24,17 @@ app.use(express.json()); // JSON body parser
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging
-app.use((req, res, next) => {
+app.use((_req: express.Request, res: express.Response, next: express.NextFunction) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${req.method}] ${req.path} - ${res.statusCode} (${duration}ms)`);
+    console.log(`[${_req.method}] ${_req.path} - ${res.statusCode} (${duration}ms)`);
   });
   next();
 });
 
 // Mock authentication middleware (replace with real auth)
-app.use((req: AuthenticatedRequest, res, next) => {
+app.use((req: AuthenticatedRequest, _res: express.Response, next: express.NextFunction) => {
   // In production, validate JWT and extract user claims
   // For demo, we'll use a header-based mock
   const userId = req.headers['x-user-id'] as string;
@@ -59,7 +60,7 @@ app.use((req: AuthenticatedRequest, res, next) => {
 // Routes
 // ========================================================================
 
-app.get('/', (req, res) => {
+app.get('/', (_req: express.Request, res: express.Response) => {
   res.json({
     service: 'molam-rbac',
     version: '1.0.0',
@@ -72,7 +73,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req: express.Request, res: express.Response) => {
   const dbOk = await healthCheck();
   const redisOk = await redisHealthCheck();
 
@@ -94,7 +95,7 @@ app.use('/api/rbac', rbacRouter);
 // Error Handling
 // ========================================================================
 
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[ERROR]', err);
   res.status(500).json({
     error: 'internal_server_error',
@@ -103,7 +104,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: express.Request, res: express.Response) => {
   res.status(404).json({
     error: 'not_found',
     message: `Route ${req.method} ${req.path} not found`,

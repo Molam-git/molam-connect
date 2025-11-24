@@ -1,0 +1,40 @@
+{
+  "name": "molam-wallet",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^6.5.20",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
+    "dayjs": "^1.11.11",
+    "expo": "^50.0.0",
+    "expo-haptics": "^12.0.0",
+    "expo-localization": "^15.0.0",
+    "expo-secure-store": "^13.0.0",
+    "expo-status-bar": "~1.11.1",
+    "i18next": "^23.7.6",
+    "react": "18.2.0",
+    "react-i18next": "^13.2.2",
+    "react-native": "0.73.0",
+    "react-native-qrcode-svg": "^6.3.0",
+    "react-native-reanimated": "^3.5.0",
+    "react-native-safe-area-context": "^4.8.0",
+    "react-native-screens": "^3.29.0",
+    "react-query": "^3.39.3",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.2",
+    "@types/react": "^18.2.73",
+    "@types/react-native": "^0.73.0",
+    "@types/jest": "^29.5.12"
+  }
+}

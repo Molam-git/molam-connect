@@ -109,6 +109,93 @@ app.use('/dashboard', express.static(path.join(__dirname, 'public')));
 // Serve static files from public directory (for checkout.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve React wallet app (Brique 149a)
+app.use('/wallet-react', express.static(path.join(__dirname, 'brique-149a-wallet/web/build')));
+
+// Serve React merchant dashboard (Brique 149b)
+app.use('/merchant-dashboard', express.static(path.join(__dirname, 'brique-149b-connect/web/build')));
+
+// ============================================================================
+// Brique 68: RBAC (Role-Based Access Control)
+// ============================================================================
+
+const RBACService = require('./src/services/rbacService');
+const { requirePermission, requireAnyPermission, requireAllPermissions } = require('./src/middleware/rbac');
+
+// Initialize RBAC service
+const rbacService = new RBACService(pool);
+
+// Mock authentication middleware for RBAC (replace with real JWT auth in production)
+app.use('/api/rbac', (req, res, next) => {
+  // Extract user info from headers (for demo/testing)
+  const userId = req.headers['x-user-id'];
+  const userEmail = req.headers['x-user-email'];
+
+  if (userId) {
+    // Convert test-123 to proper UUID for database compatibility
+    const userIdUUID = userId === 'test-123' ? '00000000-0000-0000-0000-000000000123' : userId;
+
+    req.user = {
+      id: userIdUUID,
+      email: userEmail || 'demo@molam.com',
+      roles: [],
+      org_roles: {},
+      country: 'US',
+      currency: 'USD',
+      kyc_level: 'P2',
+      sira_score: 0.8,
+    };
+  }
+
+  next();
+});
+
+// Import RBAC routes from Brique 68
+const rbacRouter = require('./brique-68/dist/routes/rbac').default;
+
+// Mount RBAC routes
+app.use('/api/rbac', rbacRouter);
+
+console.log('✅ RBAC (Brique 68) initialized');
+
+// ============================================================================
+// Brique Translation: Multi-language Support
+// ============================================================================
+
+const axios = require('axios');
+const TRANSLATION_SERVICE_URL = process.env.TRANSLATION_SERVICE_URL || 'http://localhost:4015';
+
+// Proxy translation requests to Translation service
+app.post('/api/translate', async (req, res) => {
+  try {
+    const response = await axios.post(`${TRANSLATION_SERVICE_URL}/api/translate`, req.body, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 5000,
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Translation service error:', error.message);
+    // Fallback: return source text if translation service unavailable
+    res.json({ text: req.body.text });
+  }
+});
+
+// Proxy translation feedback
+app.post('/api/translate/feedback', async (req, res) => {
+  try {
+    const response = await axios.post(`${TRANSLATION_SERVICE_URL}/api/feedback`, req.body, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 3000,
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Translation feedback error:', error.message);
+    res.status(500).json({ error: 'feedback_failed' });
+  }
+});
+
+console.log('✅ Translation Service (Brique Translation) initialized');
+
 // ============================================================================
 // API Routes
 // ============================================================================
@@ -156,13 +243,14 @@ app.post('/api/v1/payment_intents', async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    const clientSecret = `pi_${require('uuid').v4()}_secret_${require('uuid').v4()}`;
+    const paymentIntentId = `pi_${require('uuid').v4()}`;
+    const clientSecret = `${paymentIntentId}_secret_${require('uuid').v4()}`;
 
     const result = await pool.query(
-      `INSERT INTO payment_intents (amount, currency, customer_id, description, metadata, client_secret, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+      `INSERT INTO payment_intents (id, amount, currency, customer_id, description, metadata, client_secret, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
        RETURNING *`,
-      [amount, currency || 'USD', customer_id || null, description || null, JSON.stringify(metadata || {}), clientSecret]
+      [paymentIntentId, amount, currency || 'USD', customer_id || null, description || null, JSON.stringify(metadata || {}), clientSecret]
     );
 
     const paymentIntent = result.rows[0];
@@ -285,16 +373,18 @@ app.post('/api/v1/auth/decide', async (req, res) => {
     else if (riskScore >= 50) recommended = 'otp_sms';
     else recommended = 'none';
 
-    // Log decision
+    // Log decision (using native UUID for database compatibility)
+    const decisionId = require('uuid').v4();
+
     const result = await pool.query(
       `INSERT INTO auth_decisions (
-        payment_id, user_id, country, device_fingerprint, device_ip,
-        risk_score, recommended_method, final_method, amount, currency, bin
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        id, payment_id, user_id, country, device_fingerprint, device_ip,
+        risk_score, decision, recommended_method, final_method, amount, currency, bin
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id`,
       [
-        payment_id, user_id || null, country, device?.fingerprint || null, device?.ip || null,
-        riskScore, recommended, recommended, amount, currency, bin || null
+        decisionId, payment_id, user_id || null, country, device?.fingerprint || null, device?.ip || null,
+        riskScore, recommended, recommended, recommended, amount, currency, bin || null
       ]
     );
 
@@ -443,16 +533,18 @@ app.post('/api/v1/customers', async (req, res) => {
       return res.status(400).json({ error: 'Email required' });
     }
 
+    const customerId = `cus_${require('uuid').v4()}`;
+
     const result = await pool.query(
-      `INSERT INTO customers (email, name, phone, country, metadata)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO customers (id, email, name, phone, country, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (email) DO UPDATE SET
          name = EXCLUDED.name,
          phone = EXCLUDED.phone,
          country = EXCLUDED.country,
          updated_at = now()
        RETURNING *`,
-      [email, name || null, phone || null, country || null, JSON.stringify(metadata || {})]
+      [customerId, email, name || null, phone || null, country || null, JSON.stringify(metadata || {})]
     );
 
     res.status(201).json(result.rows[0]);
@@ -1018,6 +1110,404 @@ app.post('/api/v1/3ds/callback', async (req, res) => {
     console.error('❌ 3DS callback failed:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// ============================================================================
+// Brique 149a: QR Code Wallet APIs
+// ============================================================================
+
+// Get default wallet for user
+app.get('/api/v1/wallet/default/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        w.*,
+        wb.balance,
+        wb.available_balance,
+        wb.pending_credit,
+        wb.pending_debit,
+        c.name as currency_name,
+        c.minor_unit,
+        co.name as country_name
+      FROM molam_wallets w
+      LEFT JOIN wallet_balances wb ON w.id = wb.wallet_id
+      LEFT JOIN ref_currencies c ON w.currency = c.currency_code
+      LEFT JOIN ref_countries co ON w.country_code = co.country_code
+      WHERE w.user_id = $1 AND w.is_default = true
+      LIMIT 1
+    `, [user_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No default wallet found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Get default wallet failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all wallets for user
+app.get('/api/v1/wallet/user/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        w.*,
+        wb.balance,
+        wb.available_balance,
+        wb.pending_credit,
+        wb.pending_debit,
+        c.name as currency_name,
+        c.minor_unit,
+        co.name as country_name
+      FROM molam_wallets w
+      LEFT JOIN wallet_balances wb ON w.id = wb.wallet_id
+      LEFT JOIN ref_currencies c ON w.currency = c.currency_code
+      LEFT JOIN ref_countries co ON w.country_code = co.country_code
+      WHERE w.user_id = $1
+      ORDER BY w.is_default DESC, w.currency
+    `, [user_id]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Get user wallets failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get wallet balance
+app.get('/api/v1/wallet/:wallet_id/balance', async (req, res) => {
+  try {
+    const { wallet_id } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        w.id,
+        w.currency,
+        wb.balance,
+        wb.available_balance,
+        wb.pending_credit,
+        wb.pending_debit,
+        wb.last_transaction_at
+      FROM molam_wallets w
+      JOIN wallet_balances wb ON w.id = wb.wallet_id
+      WHERE w.id = $1
+    `, [wallet_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wallet not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Get wallet balance failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get wallet transaction history
+app.get('/api/v1/wallet/:wallet_id/history', async (req, res) => {
+  try {
+    const { wallet_id } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+
+    const result = await pool.query(`
+      SELECT *
+      FROM wallet_history
+      WHERE wallet_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [wallet_id, limit, offset]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Get wallet history failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create QR code for payment
+app.post('/api/v1/wallet/qr/create', async (req, res) => {
+  try {
+    const { wallet_id, user_id, purpose, amount, description } = req.body;
+
+    // Validate purpose
+    if (!['receive', 'pay', 'transfer'].includes(purpose)) {
+      return res.status(400).json({ error: 'Invalid purpose. Must be: receive, pay, or transfer' });
+    }
+
+    // Get wallet currency
+    const walletResult = await pool.query(
+      'SELECT currency FROM molam_wallets WHERE id = $1 AND user_id = $2',
+      [wallet_id, user_id]
+    );
+
+    if (walletResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Wallet not found' });
+    }
+
+    const currency = walletResult.rows[0].currency;
+
+    // Create QR token (expires in 15 minutes)
+    const result = await pool.query(`
+      INSERT INTO wallet_qr_tokens (wallet_id, user_id, purpose, amount, currency, expires_at, description)
+      VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '15 minutes', $6)
+      RETURNING *
+    `, [wallet_id, user_id, purpose, amount || null, currency, description || null]);
+
+    const qrToken = result.rows[0];
+
+    res.json({
+      token: qrToken.token,
+      purpose: qrToken.purpose,
+      amount: qrToken.amount,
+      currency: qrToken.currency,
+      expires_at: qrToken.expires_at,
+      description: qrToken.description
+    });
+  } catch (error) {
+    console.error('❌ Create QR token failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify QR code
+app.get('/api/v1/wallet/qr/verify/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        qr.*,
+        w.currency,
+        w.display_name as wallet_name,
+        u.user_type
+      FROM wallet_qr_tokens qr
+      JOIN molam_wallets w ON qr.wallet_id = w.id
+      LEFT JOIN molam_users u ON qr.user_id = u.id
+      WHERE qr.token = $1
+    `, [token]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'QR code not found' });
+    }
+
+    const qr = result.rows[0];
+
+    // Check if expired
+    if (new Date(qr.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'QR code expired' });
+    }
+
+    // Check if already used
+    if (qr.used_at) {
+      return res.status(400).json({ error: 'QR code already used' });
+    }
+
+    res.json({
+      valid: true,
+      token: qr.token,
+      purpose: qr.purpose,
+      amount: qr.amount,
+      currency: qr.currency,
+      description: qr.description,
+      wallet_id: qr.wallet_id,
+      user_id: qr.user_id,
+      expires_at: qr.expires_at
+    });
+  } catch (error) {
+    console.error('❌ Verify QR token failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List active QR codes for user
+app.get('/api/v1/wallet/qr/user/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const result = await pool.query(`
+      SELECT *
+      FROM wallet_qr_tokens
+      WHERE user_id = $1
+        AND used_at IS NULL
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+    `, [user_id]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ List QR tokens failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// Brique 149a: React Wallet Home APIs
+// ============================================================================
+
+// Get wallet home data (for React app)
+app.get('/api/wallet/home', async (req, res) => {
+  try {
+    // For demo, use test user ID (in production, get from JWT token)
+    const user_id = '00000000-0000-0000-0000-000000000123';
+
+    // Get default wallet with balance
+    const walletResult = await pool.query(`
+      SELECT
+        w.*,
+        wb.balance,
+        wb.available_balance,
+        wb.pending_credit,
+        wb.pending_debit,
+        c.name as currency_name,
+        c.minor_unit,
+        co.name as country_name
+      FROM molam_wallets w
+      LEFT JOIN wallet_balances wb ON w.id = wb.wallet_id
+      LEFT JOIN ref_currencies c ON w.currency = c.currency_code
+      LEFT JOIN ref_countries co ON w.country_code = co.country_code
+      WHERE w.user_id = $1 AND w.is_default = true
+      LIMIT 1
+    `, [user_id]);
+
+    if (walletResult.rows.length === 0) {
+      return res.status(404).json({ error: 'No default wallet found' });
+    }
+
+    const wallet = walletResult.rows[0];
+
+    // Get recent transaction history
+    const historyResult = await pool.query(`
+      SELECT
+        id,
+        label,
+        amount,
+        currency,
+        type,
+        category,
+        created_at as timestamp
+      FROM wallet_history
+      WHERE wallet_id = $1
+      ORDER BY created_at DESC
+      LIMIT 20
+    `, [wallet.id]);
+
+    // Build response
+    const response = {
+      user: {
+        id: user_id,
+        locale: 'fr',
+        currency: wallet.currency,
+        country: wallet.country_code
+      },
+      balance: {
+        balance: parseFloat(wallet.balance || 0),
+        currency: wallet.currency,
+        status: wallet.status
+      },
+      actions: [
+        { k: 'receive', l: 'Recevoir', e: '📥', icon: 'receive' },
+        { k: 'transfer', l: 'Transférer', e: '💸', icon: 'send' },
+        { k: 'merchant_payment', l: 'Payer', e: '🛒', icon: 'payment' },
+        { k: 'topup', l: 'Recharger', e: '➕', icon: 'topup' },
+        { k: 'withdraw', l: 'Retirer', e: '💰', icon: 'withdraw' },
+        { k: 'scan', l: 'Scanner', e: '📷', icon: 'scan' },
+        {
+          k: 'bills',
+          l: 'Factures',
+          e: '📡',
+          icon: 'bills',
+          sub: [
+            { k: 'electricity', l: 'Électricité', e: '⚡', icon: 'electricity' },
+            { k: 'water', l: 'Eau', e: '💧', icon: 'water' },
+            { k: 'internet', l: 'Internet', e: '🌐', icon: 'internet' },
+            { k: 'mobile', l: 'Mobile', e: '📱', icon: 'mobile' }
+          ]
+        }
+      ],
+      history: historyResult.rows.map(tx => ({
+        id: tx.id,
+        label: tx.label,
+        amount: parseFloat(tx.amount) * (tx.type === 'debit' ? -1 : 1),
+        currency: tx.currency,
+        type: tx.type,
+        category: tx.category,
+        timestamp: tx.timestamp
+      }))
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Get wallet home failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate QR code (for React app)
+app.post('/api/wallet/qr/generate', async (req, res) => {
+  try {
+    const { purpose = 'receive', expiryMinutes = 15 } = req.body;
+
+    // For demo, use test user ID
+    const user_id = '00000000-0000-0000-0000-000000000123';
+
+    // Get default wallet
+    const walletResult = await pool.query(`
+      SELECT id, currency
+      FROM molam_wallets
+      WHERE user_id = $1 AND is_default = true
+      LIMIT 1
+    `, [user_id]);
+
+    if (walletResult.rows.length === 0) {
+      return res.status(404).json({ error: 'No default wallet found' });
+    }
+
+    const wallet = walletResult.rows[0];
+
+    // Create QR token
+    const tokenResult = await pool.query(`
+      INSERT INTO wallet_qr_tokens (wallet_id, user_id, purpose, currency, expires_at, description)
+      VALUES ($1, $2, $3, $4, NOW() + INTERVAL '${expiryMinutes} minutes', 'QR code for payment')
+      RETURNING *
+    `, [wallet.id, user_id, purpose, wallet.currency]);
+
+    const qrToken = tokenResult.rows[0];
+
+    // Build QR URL (format: molam://wallet/pay?token=...)
+    const qr_url = `molam://wallet/pay?token=${encodeURIComponent(qrToken.token)}`;
+    const deep_link = qr_url;
+
+    res.json({
+      token: qrToken.token,
+      expires_at: qrToken.expires_at,
+      qr_url: qr_url,
+      deep_link: deep_link
+    });
+  } catch (error) {
+    console.error('❌ Generate QR failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// React Wallet App - Handle client-side routing
+// ============================================================================
+
+// Catch-all route for React wallet app (must be before 404 handler)
+app.get('/wallet-react/*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'brique-149a-wallet/web/build/index.html'));
+});
+
+// Catch-all route for React merchant dashboard (must be before 404 handler)
+app.get('/merchant-dashboard/*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'brique-149b-connect/web/build/index.html'));
 });
 
 // ============================================================================

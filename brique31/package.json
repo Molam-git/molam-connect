@@ -1,0 +1,21 @@
+{
+    "name": "molam-aggregator",
+    "version": "1.0.0",
+    "dependencies": {
+        "express": "^4.18.0",
+        "jsonwebtoken": "^9.0.0",
+        "kafkajs": "^2.2.0",
+        "node-fetch": "^2.6.0",
+        "pg": "^8.8.0",
+        "prom-client": "^14.0.0",
+        "socket.io": "^4.5.0"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.5",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^18.0.0",
+        "@types/pg": "^8.15.6",
+        "jest": "^28.0.0",
+        "typescript": "^4.8.0"
+    }
+}

@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: Molam Pay Notifier
+  version: 1.0.0
+  description: Moteur de notifications multicanal pour Molam Pay
+servers:
+  - url: http://localhost:8080
+    description: Development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /api/pay/notif/publish:
+    post:
+      summary: Publish a notification request (async)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, template_code]
+              properties:
+                user_id: { type: string, format: uuid }
+                type: { type: string, enum: [txn, reward, bill, security, system] }
+                template_code: { type: string }
+                variables: { type: object, additionalProperties: true }
+                priority: { type: string, enum: [low, normal, high, critical], default: normal }
+                channels: { type: array, items: { type: string, enum: [push, sms, email, ussd, whatsapp] } }
+                idempotency_key: { type: string }
+      responses:
+        "202":
+          description: Accepted (queued)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+  /api/pay/notif/list:
+    get:
+      summary: List last notifications for current user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    type: { type: string }
+                    channel: { type: string }
+                    locale: { type: string }
+                    title: { type: string }
+                    message: { type: string }
+                    priority: { type: string }
+                    status: { type: string }
+                    sent_at: { type: string, format: date-time }
+                    created_at: { type: string, format: date-time }
+  /api/pay/notif/templates:
+    post:
+      summary: Create/update notification template (admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, channel, body]
+              properties:
+                code: { type: string }
+                channel: { type: string, enum: [push, sms, email, ussd, whatsapp] }
+                subject: { type: object }
+                body: { type: object }
+                variables: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Template created/updated

@@ -1,0 +1,46 @@
+{
+    "name": "molam-pay-brique-13-history",
+    "version": "1.0.0",
+    "description": "API Historique des transactions Molam Pay",
+    "main": "dist/app.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/app.js",
+        "dev": "ts-node-dev src/app.ts",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "migrate": "node dist/scripts/migrate.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "pg": "^8.11.3",
+        "dotenv": "^16.3.1",
+        "helmet": "^7.1.0",
+        "cors": "^2.8.5",
+        "compression": "^1.7.4",
+        "pdfkit": "^0.14.0",
+        "csv-stringify": "^6.4.4",
+        "crypto": "^1.0.1"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/pg": "^8.10.7",
+        "@types/pdfkit": "^0.13.3",
+        "@types/cors": "^2.8.17",
+        "@types/compression": "^1.7.5",
+        "@types/node": "^20.8.0",
+        "typescript": "^5.2.2",
+        "ts-node-dev": "^2.0.0",
+        "jest": "^29.7.0",
+        "@types/jest": "^29.5.8"
+    },
+    "keywords": [
+        "payment",
+        "history",
+        "api",
+        "molam",
+        "transaction"
+    ],
+    "author": "Molam Pay Team",
+    "license": "MIT"
+}

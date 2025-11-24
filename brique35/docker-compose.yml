@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: payouts
+      POSTGRES_USER: molam
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  payouts-api:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://molam:${DB_PASSWORD}@postgres:5432/payouts
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LEDGER_SERVICE_URL: http://ledger-service:8080
+      SIRA_SERVICE_URL: http://sira-service:8082
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,56 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Molam KPI Dashboard",
+        "tags": [
+            "molam",
+            "kpi",
+            "realtime"
+        ],
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Volume des Transactions par Zone",
+                "type": "stat",
+                "targets": [
+                    {
+                        "rawSql": "SELECT day as time, zone, total_volume_local as value FROM mv_kpi_by_zone WHERE $__timeFilter(day)",
+                        "format": "table"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "currencyUSD"
+                    }
+                }
+            },
+            {
+                "id": 2,
+                "title": "Frais Molam par Jour",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "rawSql": "SELECT day as time, SUM(total_fees_molam) as fees FROM mv_kpi_by_zone WHERE $__timeFilter(day) GROUP BY day ORDER BY day",
+                        "format": "time_series"
+                    }
+                ]
+            },
+            {
+                "id": 3,
+                "title": "Alertes par Sévérité",
+                "type": "piechart",
+                "targets": [
+                    {
+                        "rawSql": "SELECT severity, COUNT(*) as count FROM dashboard_alerts WHERE created_at >= NOW() - INTERVAL '24 hours' GROUP BY severity",
+                        "format": "table"
+                    }
+                ]
+            }
+        ],
+        "time": {
+            "from": "now-24h",
+            "to": "now"
+        }
+    }
+}

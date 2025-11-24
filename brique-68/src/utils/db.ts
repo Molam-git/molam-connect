@@ -1,12 +1,13 @@
 /**
  * Database connection pool for RBAC
  */
+import 'dotenv/config';
 import { Pool } from 'pg';
 
 export const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'molam_rbac',
+  database: process.env.DB_NAME || 'molam_connect', // Changed default to molam_connect
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   max: parseInt(process.env.DB_POOL_MAX || '20'),

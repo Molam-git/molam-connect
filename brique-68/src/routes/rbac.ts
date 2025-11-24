@@ -247,14 +247,14 @@ router.post(
           ]
         );
 
-        res.status(201).json({
+        return res.status(201).json({
           status: 'assigned',
           message: 'Role assigned successfully',
         });
       }
     } catch (err: any) {
       console.error('[RBAC] Error assigning role:', err);
-      res.status(500).json({ error: 'assign_failed', message: err.message });
+      return res.status(500).json({ error: 'assign_failed', message: err.message });
     }
   }
 );

@@ -1,0 +1,32 @@
+{
+    "name": "molam-pay-withdrawals",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node src/index.ts",
+        "db:up": "docker-compose up -d",
+        "db:down": "docker-compose down",
+        "db:logs": "docker-compose logs -f postgres",
+        "db:reset": "docker-compose down && docker volume rm molam-postgres_data && docker-compose up -d",
+        "db:psql": "docker-compose exec postgres psql -U molam_user -d molam_pay",
+        "migrate:withdrawals": "docker-compose exec postgres psql -U molam_user -d molam_pay -f /docker-entrypoint-initdb.d/004_withdrawals.sql",
+        "migrate:function": "docker-compose exec postgres psql -U molam_user -d molam_pay -f /docker-entrypoint-initdb.d/004_fn_post_withdrawal.sql"
+    },
+    "dependencies": {
+        "crypto": "^1.0.1",
+        "dotenv": "^16.6.1",
+        "express": "^4.18.2",
+        "express-validator": "^7.0.1",
+        "pg-promise": "^11.5.4",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.17",
+        "@types/node": "^20.5.0",
+        "@types/pg": "^8.10.2",
+        "@types/uuid": "^9.0.2",
+        "ts-node": "^10.9.0",
+        "typescript": "^5.0.0"
+    }
+}

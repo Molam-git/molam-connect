@@ -1,0 +1,53 @@
+{
+    "name": "molam-notifications",
+    "version": "1.0.0",
+    "description": "Molam Notification Delivery Engine - Brique 28",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/start.js",
+        "dev": "ts-node src/start.ts",
+        "worker": "ts-node src/worker/deliveryWorker.ts",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "lint": "eslint src/**/*.ts",
+        "migrate": "node-pg-migrate"
+    },
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "express": "^4.21.2",
+        "jsonwebtoken": "^9.0.0",
+        "kafkajs": "^2.2.4",
+        "node-fetch": "^2.6.7",
+        "pg": "^8.16.3",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.25",
+        "@types/jest": "^29.5.14",
+        "@types/jsonwebtoken": "^9.0.2",
+        "@types/node": "^20.19.24",
+        "@types/node-fetch": "^2.6.4",
+        "@types/pg": "^8.15.6",
+        "@types/supertest": "^6.0.3",
+        "@types/uuid": "^9.0.2",
+        "@typescript-eslint/eslint-plugin": "^5.59.11",
+        "@typescript-eslint/parser": "^5.59.11",
+        "eslint": "^8.42.0",
+        "jest": "^29.7.0",
+        "supertest": "^6.3.3",
+        "ts-jest": "^29.4.5",
+        "ts-node": "^10.9.1",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.9.3"
+    },
+    "keywords": [
+        "notifications",
+        "sms",
+        "email",
+        "molam",
+        "payment"
+    ],
+    "author": "Molam Team",
+    "license": "MIT"
+}

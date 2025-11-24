@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: molam_pay
+      POSTGRES_USER: molam_user
+      POSTGRES_PASSWORD: molam_password_secure
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      DB_USER: molam_user
+      DB_PASSWORD: molam_password_secure
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: molam_pay
+      STATIC_QR_HMAC_KEY: your-secret-hmac-key
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:3000"
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:3000
+
+volumes:
+  postgres_data:

@@ -1,0 +1,40 @@
+{
+    "name": "brique-16-molam-agents",
+    "version": "1.0.0",
+    "description": "Module de gestion des agents partenaires physiques Molam Pay",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node-dev src/index.ts",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "migrate": "node dist/database/migrate.js"
+    },
+    "dependencies": {
+        "axios": "^1.5.0",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "crypto": "^1.0.1",
+        "express": "^4.18.2",
+        "express-validator": "^7.0.1",
+        "helmet": "^7.1.0",
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3",
+        "winston": "^3.11.0"
+    },
+    "devDependencies": {
+        "@types/bcryptjs": "^2.4.6",
+        "@types/express": "^4.17.21",
+        "@types/jest": "^29.5.14",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/pg": "^8.10.7",
+        "@types/supertest": "^6.0.3",
+        "jest": "^29.7.0",
+        "supertest": "^7.1.4",
+        "ts-jest": "^29.4.5",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.2.2"
+    }
+}

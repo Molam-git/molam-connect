@@ -1,0 +1,39 @@
+{
+    "name": "brique-23-float-management",
+    "version": "1.0.0",
+    "description": "API Float management (optimisation SIRA) pour Molam Pay",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node src/index.ts",
+        "test": "jest",
+        "migrate": "node-pg-migrate"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "helmet": "^7.0.0",
+        "pg-promise": "^11.4.3",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.17",
+        "@types/jest": "^29.5.14",
+        "@types/pg": "^8.10.2",
+        "@types/uuid": "^9.0.0",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.4.5",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.1.6"
+    },
+    "keywords": [
+        "float",
+        "treasury",
+        "optimization",
+        "sira",
+        "molam"
+    ],
+    "author": "Molam Pay Team",
+    "license": "MIT"
+}
