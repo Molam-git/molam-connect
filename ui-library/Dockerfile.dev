@@ -1,9 +1,20 @@
-FROM node:20-alpine
-WORKDIR /app
-ENV CHOKIDAR_USEPOLLING=true
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-EXPOSE 5173 6006
-CMD ["sh", "-c", "npm run dev & npm run storybook"]
+# Development Dockerfile for Molam UI Storybook
 
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose Storybook port
+EXPOSE 6006
+
+# Start Storybook in dev mode
+CMD ["npm", "run", "storybook"]

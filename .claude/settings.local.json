@@ -17,7 +17,10 @@
       "Bash(node server.js:*)",
       "Bash(npm install)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash($null)",
+      "Bash(exit 0)",
+      "Bash(xargs -r powershell -Command \"Stop-Process -Id {} -Force\")"
     ],
     "deny": [],
     "ask": []

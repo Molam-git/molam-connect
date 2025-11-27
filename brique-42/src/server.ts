@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import { auth } from "./auth";
 import { intentsRouter } from "./routes/intents";
 import { refundsRouter } from "./routes/refunds";
+import { webhooksRouter } from "./routes/webhooks";
 import { pool } from "./db";
 
 dotenv.config();
@@ -64,6 +65,7 @@ app.get("/healthz", async (req, res) => {
 app.use("/api", auth);
 app.use("/api/connect/intents", intentsRouter);
 app.use("/api/connect/refunds", refundsRouter);
+app.use("/api/connect/webhooks", webhooksRouter);
 
 // Error handling
 app.use((req, res) => {

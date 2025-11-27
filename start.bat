@@ -50,7 +50,7 @@ echo [5/5] Starting server...
 echo.
 echo ============================================================
 echo  Server will start at: http://localhost:3000
-echo  Dashboard: http://localhost:3000/dashboard
+echo  Dashboard: http://localhost:3001/dashboard
 echo  Health Check: http://localhost:3000/health
 echo ============================================================
 echo.

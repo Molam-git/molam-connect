@@ -1,28 +1,37 @@
-# Stage 1: build storybook
-FROM node:20-alpine AS builder
+# Multi-stage build for Molam UI Storybook
+
+# Stage 1: Build
+FROM node:18-alpine AS builder
+
 WORKDIR /app
 
-# Install deps (use npm ci for repeatability)
-COPY package.json package-lock.json ./
-RUN npm ci --silent
+# Copy package files
+COPY package*.json ./
 
-# Copy sources and build storybook
+# Install dependencies
+RUN npm ci
+
+# Copy source code
 COPY . .
+
+# Build Storybook
 RUN npm run build-storybook
 
-# Stage 2: serve with nginx
-FROM nginx:stable-alpine AS runner
-LABEL maintainer="Molam Ops <ops@molam.example>"
+# Stage 2: Production
+FROM nginx:alpine AS production
 
-# Remove default nginx content
-RUN rm -rf /usr/share/nginx/html/*
+# Copy custom nginx config
+COPY deploy/nginx/storybook.conf /etc/nginx/conf.d/default.conf
 
-# Copy built storybook
+# Copy built storybook from builder
 COPY --from=builder /app/storybook-static /usr/share/nginx/html
 
-# Add simple nginx config to enable SPA fallback and cache headers
-COPY ./deploy/nginx/storybook.conf /etc/nginx/conf.d/default.conf
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:80/ || exit 1
 
+# Expose port
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
 
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

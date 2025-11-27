@@ -6,7 +6,7 @@
  * Features: Create, edit, delete, test webhooks
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./WebhooksManager.css";
 
 // ============================================================================
@@ -74,7 +74,7 @@ export const WebhooksManager: React.FC<WebhooksManagerProps> = ({
   // Fetch Webhooks
   // ============================================================================
 
-  const fetchWebhooks = async () => {
+  const fetchWebhooks = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${apiUrl}/api/connect/webhooks?connect_account_id=${connectAccountId}`, {
@@ -95,11 +95,11 @@ export const WebhooksManager: React.FC<WebhooksManagerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [connectAccountId, apiUrl, authToken]);
 
   useEffect(() => {
     fetchWebhooks();
-  }, [connectAccountId]);
+  }, [fetchWebhooks]);
 
   // ============================================================================
   // Create/Update Webhook

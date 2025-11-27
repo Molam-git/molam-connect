@@ -27,6 +27,18 @@ declare global {
  * Expects: Authorization: Bearer <token>
  */
 export function auth(req: Request, res: Response, next: NextFunction) {
+  // Skip JWT verification in development mode if configured
+  if (process.env.SKIP_JWT_VERIFICATION === "true") {
+    req.user = {
+      id: "dev_user",
+      roles: ["developer"],
+      locale: "en-US",
+      currency: "USD",
+      country: "US",
+    };
+    return next();
+  }
+
   const hdr = req.headers.authorization || "";
   const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : "";
 
@@ -35,22 +47,21 @@ export function auth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    // Get public key from env (RS256)
-    const publicKey = (process.env.MOLAM_ID_JWT_PUBLIC || "").replace(/\\n/g, "\n");
+    // Get JWT secret from env (HS256) - shared with Molam ID
+    const jwtSecret = process.env.MOLAM_ID_JWT_SECRET;
 
-    if (!publicKey) {
-      throw new Error("MOLAM_ID_JWT_PUBLIC not configured");
+    if (!jwtSecret) {
+      throw new Error("MOLAM_ID_JWT_SECRET not configured");
     }
 
-    // Verify JWT
-    const payload: any = jwt.verify(token, publicKey, {
-      algorithms: ["RS256"],
-      issuer: "molam-id",
+    // Verify JWT with HS256 (same as Molam ID)
+    const payload: any = jwt.verify(token, jwtSecret, {
+      algorithms: ["HS256"],
     });
 
-    // Extract user info
+    // Extract user info from Molam ID token
     req.user = {
-      id: payload.sub,
+      id: payload.sub || payload.userId || payload.id,
       roles: payload.roles || [],
       locale: payload.locale || "en-US",
       currency: payload.currency || "USD",
@@ -76,16 +87,18 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const publicKey = (process.env.MOLAM_ID_JWT_PUBLIC || "").replace(/\\n/g, "\n");
-    const payload: any = jwt.verify(token, publicKey, { algorithms: ["RS256"] });
+    const jwtSecret = process.env.MOLAM_ID_JWT_SECRET;
+    if (jwtSecret) {
+      const payload: any = jwt.verify(token, jwtSecret, { algorithms: ["HS256"] });
 
-    req.user = {
-      id: payload.sub,
-      roles: payload.roles || [],
-      locale: payload.locale || "en-US",
-      currency: payload.currency || "USD",
-      country: payload.country || "US",
-    };
+      req.user = {
+        id: payload.sub || payload.userId || payload.id,
+        roles: payload.roles || [],
+        locale: payload.locale || "en-US",
+        currency: payload.currency || "USD",
+        country: payload.country || "US",
+      };
+    }
   } catch (e) {
     // Invalid token, but continue without user
   }

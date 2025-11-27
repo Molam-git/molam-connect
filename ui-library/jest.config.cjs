@@ -1,9 +1,27 @@
 module.exports = {
-  testEnvironment: "jsdom",
-  transform: {
-    "^.+\\.(ts|tsx)$": "esbuild-jest"
+  preset: 'ts-jest',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
-  setupFilesAfterEnv: ["@testing-library/jest-dom/extend-expect"]
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.stories.tsx',
+    '!src/**/*.test.tsx',
+    '!src/index.ts'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  },
+  testMatch: [
+    '**/__tests__/**/*.{ts,tsx}',
+    '**/*.test.{ts,tsx}'
+  ]
 };
-
