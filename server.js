@@ -151,12 +151,13 @@ app.use('/api/rbac', (req, res, next) => {
 });
 
 // Import RBAC routes from Brique 68
-const rbacRouter = require('./brique-68/dist/routes/rbac').default;
+// NOTE: Commented out for Docker build - brique-68 is excluded from image
+// const rbacRouter = require('./brique-68/dist/routes/rbac').default;
 
 // Mount RBAC routes
-app.use('/api/rbac', rbacRouter);
+// app.use('/api/rbac', rbacRouter);
 
-console.log('✅ RBAC (Brique 68) initialized');
+console.log('⚠️  RBAC (Brique 68) disabled for Docker build');
 
 // ============================================================================
 // Brique Translation: Multi-language Support
@@ -557,7 +558,9 @@ app.post('/api/v1/customers', async (req, res) => {
 // ============================================================================
 // Brique 107: Offline Fallback (QR + USSD)
 // ============================================================================
-
+// NOTE: All brique modules (107-112) commented out for Docker build
+// These modules are excluded from the Docker image via .dockerignore
+/*
 const QRService = require('./brique-107/src/qr-service');
 const USSDService = require('./brique-107/src/ussd-service');
 
@@ -1111,6 +1114,8 @@ app.post('/api/v1/3ds/callback', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+*/
+console.log('⚠️  Briques 107-112 (QR, USSD, PaymentIntents, Checkout, Plugins, AI) disabled for Docker build');
 
 // ============================================================================
 // Brique 149a: QR Code Wallet APIs

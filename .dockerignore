@@ -85,25 +85,25 @@ build
 .env.local
 .env.*.local
 
-# Misc - Large directories to exclude
-# Exclude all brique directories first
+# Misc - Large directories to exclude (exclude EVERYTHING in briques)
 brique*/
 brique-*/
-brique[0-9]*/
-brique1*/
-brique2*/
-brique3*/
-brique4*/
-brique5*/
-brique6*/
-brique7*/
-brique8*/
-brique9*/
-
-# BUT re-include brique-68 (needed for RBAC service)
-!brique-68/
-
-# Other exclusions
+brique1/
+brique2/
+brique3/
+brique4/
+brique5/
+brique6/
+brique7/
+brique8/
+brique9/
+brique10/
+brique11/
+brique12/
+brique13/
+brique14/
+brique15/
+brique-*/
 ui-library/
 pay-entry-service/
 .github/

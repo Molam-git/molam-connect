@@ -1,10 +1,7 @@
----
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: molam
+  name: molam-connect
   labels:
-    app.kubernetes.io/name: molam-platform
-    app.kubernetes.io/part-of: molam-connect
-    environment: production
-    istio-injection: enabled  # Enable Istio if using service mesh
+    name: molam-connect
+    app: molam-connect

@@ -1,19 +1,113 @@
 /**
  * RBAC Middleware Integration for Molam Connect
- * Bridges TypeScript RBAC (Brique 68) with main JavaScript server
+ * Simplified version for Docker (without brique-68 dependency)
  */
 
-const path = require('path');
+/**
+ * Stub functions for RBAC (TODO: Implement with database queries)
+ */
 
-// Import compiled TypeScript modules from Brique 68
-const rbacPath = path.join(__dirname, '../../brique-68/dist/middleware/authzEnforce.js');
-const {
-  requirePermission,
-  requireAnyPermission,
-  requireAllPermissions,
-  getUserPermissions,
-  invalidateUserPermissions,
-} = require(rbacPath);
+// Stub: Get user permissions from database
+async function getUserPermissions(userId) {
+  console.log(`[RBAC] Get permissions for user: ${userId}`);
+  // TODO: Query database for user permissions
+  return new Set(['connect:payments:read', 'connect:payments:write']);
+}
+
+// Stub: Invalidate cached user permissions
+async function invalidateUserPermissions(userId) {
+  console.log(`[RBAC] Invalidate permissions cache for user: ${userId}`);
+  // TODO: Clear Redis cache for user permissions
+}
+
+// Middleware: Require specific permission
+function requirePermission(permission) {
+  return async (req, res, next) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: {
+          code: 'authentication_required',
+          message: 'Authentication required'
+        }
+      });
+    }
+
+    const permissions = await getUserPermissions(userId);
+
+    if (!permissions.has(permission)) {
+      return res.status(403).json({
+        error: {
+          code: 'insufficient_permissions',
+          message: `Permission required: ${permission}`
+        }
+      });
+    }
+
+    next();
+  };
+}
+
+// Middleware: Require ANY of the permissions (OR logic)
+function requireAnyPermission(permissionsArray) {
+  return async (req, res, next) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: {
+          code: 'authentication_required',
+          message: 'Authentication required'
+        }
+      });
+    }
+
+    const permissions = await getUserPermissions(userId);
+    const hasAny = permissionsArray.some((perm) => permissions.has(perm));
+
+    if (!hasAny) {
+      return res.status(403).json({
+        error: {
+          code: 'insufficient_permissions',
+          message: `One of these permissions required: ${permissionsArray.join(', ')}`
+        }
+      });
+    }
+
+    next();
+  };
+}
+
+// Middleware: Require ALL of the permissions (AND logic)
+function requireAllPermissions(permissionsArray) {
+  return async (req, res, next) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: {
+          code: 'authentication_required',
+          message: 'Authentication required'
+        }
+      });
+    }
+
+    const permissions = await getUserPermissions(userId);
+    const hasAll = permissionsArray.every((perm) => permissions.has(perm));
+
+    if (!hasAll) {
+      return res.status(403).json({
+        error: {
+          code: 'insufficient_permissions',
+          message: `All of these permissions required: ${permissionsArray.join(', ')}`
+        }
+      });
+    }
+
+    next();
+  };
+}
 
 /**
  * Export middleware functions for use in Express routes

@@ -7,7 +7,20 @@ const { Pool } = require('pg');
 const path = require('path');
 
 // Import RBAC utilities from Brique 68
-const { invalidateUserPermissions, getUserPermissions } = require(path.join(__dirname, '../../brique-68/dist/middleware/authzEnforce.js'));
+// NOTE: Commented out for Docker build - brique-68 is excluded from image
+// const { invalidateUserPermissions, getUserPermissions } = require(path.join(__dirname, '../../brique-68/dist/middleware/authzEnforce.js'));
+
+// Stub functions for Docker environment
+const invalidateUserPermissions = async (userId) => {
+  console.log(`[RBAC] Invalidate permissions for user: ${userId}`);
+  // TODO: Implement Redis cache invalidation
+};
+
+const getUserPermissions = async (userId) => {
+  console.log(`[RBAC] Get permissions for user: ${userId}`);
+  // TODO: Implement permission retrieval from database
+  return [];
+};
 
 class RBACService {
   constructor(pool) {

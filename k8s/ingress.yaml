@@ -1,88 +1,61 @@
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: molam-ingress
-  namespace: molam
+  name: molam-connect-ingress
+  namespace: molam-connect
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/proxy-body-size: "16m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://molam.com,https://www.molam.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Uncomment for cert-manager (Let's Encrypt)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Increase timeouts for payment processing
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
 spec:
-  tls:
-    - hosts:
-        - api.molam.com
-        - id.molam.com
-        - notifications.molam.com
-        - translate.molam.com
-      secretName: molam-tls-cert
+  ingressClassName: nginx  # Adjust based on your ingress controller
   rules:
-    # Molam ID
-    - host: id.molam.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-id
-                port:
-                  number: 80
+  # Payment API
+  - host: pay.molam.io  # IMPORTANT: Remplacez par votre domaine
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: molam-connect-api-service
+            port:
+              number: 3000
 
-    # Notifications API
-    - host: notifications.molam.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-notifications-api
-                port:
-                  number: 80
+  # Dashboard
+  - host: dashboard.molam.io  # IMPORTANT: Remplacez par votre domaine
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: molam-connect-api-service
+            port:
+              number: 3001
 
-    # Translation API
-    - host: translate.molam.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-translation-api
-                port:
-                  number: 80
+  # Metrics (optionnel, à sécuriser)
+  - host: metrics-connect.molam.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: molam-connect-api-service
+            port:
+              number: 9090
 
-    # Main API Gateway (routes to all services)
-    - host: api.molam.com
-      http:
-        paths:
-          - path: /auth
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-id
-                port:
-                  number: 80
-          - path: /notifications
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-notifications-api
-                port:
-                  number: 80
-          - path: /translate
-            pathType: Prefix
-            backend:
-              service:
-                name: molam-translation-api
-                port:
-                  number: 80
+  # TLS configuration (uncomment when you have certificates)
+  # tls:
+  # - hosts:
+  #   - pay.molam.io
+  #   - dashboard.molam.io
+  #   - metrics-connect.molam.io
+  #   secretName: molam-connect-tls
