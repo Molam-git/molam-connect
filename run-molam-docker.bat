@@ -55,7 +55,7 @@ echo  Services en cours d'execution:
 echo    - PostgreSQL         : localhost:5434
 echo    - Redis              : localhost:6379
 echo    - API Backend        : http://localhost:3000
-echo    - Dashboard          : http://localhost:3001/dashboard
+echo    - Dashboard          : http://localhost:3002/dashboard
 echo    - Metrics (Prometheus): http://localhost:9090/metrics
 echo.
 echo  Pour tester l'API :
@@ -69,7 +69,7 @@ echo  Pour arreter tous les services :
 echo    docker-compose -f docker-compose.full.yml down
 echo.
 
-start http://localhost:3001/dashboard
+start http://localhost:3002/dashboard
 
 echo  Ouverture du dashboard...
 echo.
